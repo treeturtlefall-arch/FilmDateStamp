@@ -57,13 +57,23 @@ class FilmDateStamp:
             },
             "optional": {
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "irregularity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("image",)
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING")
+    RETURN_NAMES = ("image", "mask", "date_text")
     FUNCTION = "apply_stamp"
     CATEGORY = "image/film"
+
+    @classmethod
+    def IS_CHANGED(cls, image, date_mode="custom", **kwargs):
+        """
+        current_date の場合、キャッシュによる固定化を防ぎ実行時の最新日時を反映する。
+        """
+        if date_mode == "current_date":
+            return float("NaN")
+        return ""
 
     def apply_stamp(
         self,
@@ -84,6 +94,7 @@ class FilmDateStamp:
         margin_x: float,
         margin_y: float,
         seed: int = 0,
+        irregularity: float = 1.0,
     ):
         """
         バッチ画像 [B, H, W, C] に対して日付スタンプを焼き付ける。
@@ -104,6 +115,7 @@ class FilmDateStamp:
             font_scale=font_scale,
             margin_x=margin_x,
             margin_y=margin_y,
+            irregularity=irregularity,
         )
 
         # ComfyUI フロントエンドではプリセット選択時に各ウィジェットが自動同期されるため、
@@ -112,6 +124,8 @@ class FilmDateStamp:
 
         batch_size = image.shape[0]
         out_list = []
+        mask_list = []
+        date_text_list = []
 
         for b in range(batch_size):
             # PyTorch Tensor [H, W, C] -> NumPy float32
@@ -120,17 +134,26 @@ class FilmDateStamp:
             # バッチごとに異なるランダム日付を付与（seed + b）
             batch_seed = (seed + b) if seed is not None else None
 
-            result_np = render_film_date_stamp(
+            result_np, mask_np, date_text = render_film_date_stamp(
                 image=img_np,
                 config=config,
                 seed=batch_seed,
+                return_details=True,
             )
 
             out_list.append(result_np)
+            mask_list.append(mask_np)
+            date_text_list.append(date_text)
 
         out_array = np.stack(out_list, axis=0)
         output_tensor = torch.from_numpy(out_array).to(image.device, dtype=image.dtype)
-        return (output_tensor,)
+
+        mask_array = np.stack(mask_list, axis=0)
+        output_mask_tensor = torch.from_numpy(mask_array).to(image.device, dtype=torch.float32)
+
+        out_date_text = date_text_list[0] if date_text_list else ""
+
+        return (output_tensor, output_mask_tensor, out_date_text)
 
 
 NODE_CLASS_MAPPINGS = {

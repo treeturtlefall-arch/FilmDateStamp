@@ -1,5 +1,10 @@
 import { app } from "../../../scripts/app.js";
 
+const DEBUG = false;
+const log = (...args) => {
+    if (DEBUG) console.log("[FilmDateStamp]", ...args);
+};
+
 /**
  * FilmDateStamp スタイルプリセット定義
  * film_config.py と同期
@@ -196,7 +201,7 @@ function repairShiftedWidgets(node) {
             seedWidget.value = (typeof shiftedSeed === "number") ? shiftedSeed : 0;
         }
 
-        console.log("[FilmDateStamp] Auto-repair completed successfully for node", node.id);
+        log("Auto-repair completed successfully for node", node.id);
         node.setDirtyCanvas(true, true);
     }
 }
@@ -210,7 +215,7 @@ function setupFilmDateStamp(node) {
     if (node._filmDateStampHooked) return;
     node._filmDateStampHooked = true;
 
-    console.log("[FilmDateStamp] Setting up preset sync for node:", node.id);
+    log("Setting up preset sync for node:", node.id);
 
     const stylePresetWidget = node.widgets.find(w => w.name === "style_preset");
     if (!stylePresetWidget) return;
@@ -226,7 +231,7 @@ function setupFilmDateStamp(node) {
         if (selected && selected !== "Custom" && STYLE_PRESETS[selected]) {
             isApplying = true;
             const preset = STYLE_PRESETS[selected];
-            console.log("[FilmDateStamp] Applying preset:", selected, preset);
+            log("Applying preset:", selected, preset);
 
             for (const key of TARGET_KEYS) {
                 if (key in preset) {
@@ -260,7 +265,7 @@ function setupFilmDateStamp(node) {
             w.callback = function (val) {
                 const res = origCb ? origCb.apply(this, arguments) : undefined;
                 if (!isApplying && stylePresetWidget.value !== "Custom") {
-                    console.log("[FilmDateStamp] Param changed:", key, "-> Switching to Custom");
+                    log("Param changed:", key, "-> Switching to Custom");
                     stylePresetWidget.value = "Custom";
                     node.setDirtyCanvas(true, true);
                     if (app.graph) {
@@ -291,7 +296,7 @@ app.registerExtension({
                     const validPositions = ["bottom_right", "bottom_left", "top_right", "top_left"];
                     // 旧フォーマット (15要素またはインデックス10がposition文字列)
                     if (typeof info.widgets_values[10] === "string" && validPositions.includes(info.widgets_values[10])) {
-                        console.log("[FilmDateStamp] Pre-migration: inserting show_time=false at index 10 of widgets_values");
+                        log("Pre-migration: inserting show_time=false at index 10 of widgets_values");
                         info.widgets_values.splice(10, 0, false);
                     }
                 }

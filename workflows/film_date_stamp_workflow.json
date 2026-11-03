@@ -99,6 +99,20 @@
             2
           ],
           "localized_name": "image"
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "slot_index": 1,
+          "links": null,
+          "localized_name": "mask"
+        },
+        {
+          "name": "date_text",
+          "type": "STRING",
+          "slot_index": 2,
+          "links": null,
+          "localized_name": "date_text"
         }
       ],
       "properties": {
@@ -120,7 +134,8 @@
         1.0,
         1.0,
         1.0,
-        42
+        42,
+        1.0
       ]
     },
     {

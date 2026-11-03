@@ -36,6 +36,38 @@ COLOR_PRESETS: Dict[str, Dict[str, Tuple[int, int, int]]] = {
     },
 }
 
+# 物理分光感度・散乱波長特性（H&D 非線形感光モデル用）
+# sens: (R, G, B 各チャンネルの感光速度)
+# scatter: (R, G, B 各チャンネルの長波長散乱比率)
+# tint: (高エネルギー飽和時の微小バイアス)
+PHYSICAL_SPECTRA: Dict[str, Dict[str, Tuple[float, float, float]]] = {
+    "Amber Classic": {
+        "sens": (3.20, 0.95, 0.38),
+        "scatter": (1.00, 0.24, 0.02),
+        "tint": (1.00, 0.98, 0.85),
+    },
+    "Quartz Red": {
+        "sens": (3.60, 0.32, 0.18),
+        "scatter": (1.00, 0.06, 0.01),
+        "tint": (1.00, 0.90, 0.84),
+    },
+    "Fuji Orange": {
+        "sens": (3.40, 0.82, 0.30),
+        "scatter": (1.00, 0.28, 0.02),
+        "tint": (1.00, 0.97, 0.80),
+    },
+    "Golden Yellow": {
+        "sens": (3.00, 1.55, 0.45),
+        "scatter": (1.00, 0.45, 0.04),
+        "tint": (1.00, 0.99, 0.90),
+    },
+    "Cyber Green": {
+        "sens": (0.32, 3.20, 0.65),
+        "scatter": (0.05, 1.00, 0.22),
+        "tint": (0.90, 1.00, 0.92),
+    },
+}
+
 SUPPORTED_DATE_FORMATS = [
     "'YY MM DD",
     "MM DD 'YY",
@@ -55,11 +87,12 @@ SUPPORTED_POSITIONS = [
 ]
 
 # 利用可能フォント定義 (フォントファイル名, シアー傾斜角度)
+# SIL OFL 1.1 Section 3 (Reserved Font Name) に準拠した派生フォント名を指定
 FONT_MAP: Dict[str, Tuple[str, float]] = {
-    "DSEG7_Classic (7-Segment)": ("DSEG7Classic-Bold.ttf", 0.0),
-    "DSEG7_Italic (7-Segment)": ("DSEG7Classic-BoldItalic.ttf", 0.0),
-    "DSEG14_Classic (14-Segment)": ("DSEG14Classic-Bold.ttf", 0.0),
-    "DSEG14_Italic (14-Segment)": ("DSEG14Classic-BoldItalic.ttf", 0.0),
+    "DSEG7_Classic (7-Segment)": ("FDS7Classic-Bold.ttf", 0.0),
+    "DSEG7_Italic (7-Segment)": ("FDS7Classic-BoldItalic.ttf", 0.0),
+    "DSEG14_Classic (14-Segment)": ("FDS14Classic-Bold.ttf", 0.0),
+    "DSEG14_Italic (14-Segment)": ("FDS14Classic-BoldItalic.ttf", 0.0),
     "VT323 (Dot Matrix)": ("VT323-Regular.ttf", 0.0),
     "Silkscreen (Fine Dot)": ("Silkscreen-Regular.ttf", 0.0),
     "ShareTechMono (LCD Digital)": ("ShareTechMono-Regular.ttf", 0.0),
@@ -221,6 +254,8 @@ class DateStampConfig:
     margin_x: float = 1.0
     margin_y: float = 1.0
     italic_angle: float = 0.0  # DSEG7_Italic 等で適用する傾斜アフィン角度（約10〜12度）
+    irregularity: float = 1.0  # 有機的ゆらぎ強度 (0.0=均一, 1.0=実機相当, 2.0=誇張)
+    grain: float = 1.0         # 乳剤マイクログレイン強度
 
     def apply_style_preset_if_set(self):
         """style_preset が選択されている場合、対応するパラメータを適用"""
@@ -287,11 +322,19 @@ def generate_random_vintage_datetime(start_year: int = 1985, end_year: int = 200
 def resolve_date_text(config: DateStampConfig, seed: Optional[int] = None) -> str:
     """
     設定に基づいて実際に描画する文字列を決定・解決する。
+    改行や制御文字は空白に正規化し、極端な長さは制限する。
     """
     mode = config.date_mode.lower().strip()
     
     if mode == "custom":
-        text = config.date_string.strip() if config.date_string else "'98 12 24"
+        raw_text = config.date_string if config.date_string is not None else "'98 12 24"
+        # 改行・タブなどの制御文字を空白に正規化し、連続空白を単一空白に縮約
+        text = re.sub(r'[\r\n\t]+', ' ', raw_text).strip()
+        if not text:
+            text = "'98 12 24"
+        # 最大64文字に制限（クラッシュ・メモリ暴走防止）
+        if len(text) > 64:
+            text = text[:64]
         
         # 末尾の時刻（例: ' 18:30', ' 09:15'）を検出
         time_match = re.search(r'\s+(\d{1,2}:\d{2})$', text)

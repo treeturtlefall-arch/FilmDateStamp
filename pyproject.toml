@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-film-date-stamp"
+version = "2.0.0"
+description = "Simulates authentic film quartz date stamps with physical optical burn-in, multi-layer glow, and halation in ComfyUI."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.20.0",
+    "Pillow>=9.0.0",
+    "torch",
+]
+keywords = ["comfyui", "film", "date-stamp", "quartz-date", "burn-in", "halation", "photography", "vintage"]
+authors = [
+    { name = "FilmDateStamp Authors" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Graphics",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/rec-frame/FilmDateStamp"
+Repository = "https://github.com/rec-frame/FilmDateStamp"
+Issues = "https://github.com/rec-frame/FilmDateStamp/issues"
+
+[tool.comfy]
+PublisherId = "film-date-stamp"
+DisplayName = "Film Date Stamp (Optical Burn-in)"
+Icon = ""
+Includes = [
+    "fonts/*",
+    "web/*",
+    "workflows/*",
+]

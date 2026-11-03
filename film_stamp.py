@@ -1,38 +1,186 @@
 """
-FilmDateStamp - コア光学露光レンダリングエンジン
-Pillow / NumPy ベースで、フィルム乳剤への3層LED露光・光学感光・ハイライト飽和をシミュレートする。
+FilmDateStamp - コア光学露光レンダリングエンジン (v2.0)
+NumPy + Pillow ベースで、フィルム乳剤へのH&D非線形分光感光・3階層有機ゆらぎ・ハイライト感光余力合成をシミュレートする。
+外部依存（scipy / torch 等）を一切排し、高速かつ完全スタンドアロンで動作する。
 """
 import os
 import math
+import re
 from functools import lru_cache
 from typing import Tuple, Optional, Union
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 try:
-    from .film_config import DateStampConfig, resolve_date_text, COLOR_PRESETS, FONT_MAP
+    from .film_config import (
+        DateStampConfig,
+        resolve_date_text,
+        COLOR_PRESETS,
+        PHYSICAL_SPECTRA,
+        FONT_MAP,
+    )
 except (ImportError, ValueError):
-    from film_config import DateStampConfig, resolve_date_text, COLOR_PRESETS, FONT_MAP
+    from film_config import (
+        DateStampConfig,
+        resolve_date_text,
+        COLOR_PRESETS,
+        PHYSICAL_SPECTRA,
+        FONT_MAP,
+    )
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONTS_DIR = os.path.join(MODULE_DIR, "fonts")
 
 
+# ==============================================================================
+# 色空間変換 (sRGB <-> Linear RGB)
+# ==============================================================================
+def srgb_to_linear(srgb: np.ndarray) -> np.ndarray:
+    """sRGB (0.0〜1.0) を物理リニア輝度空間へ変換"""
+    srgb = np.clip(srgb, 0.0, 1.0)
+    return np.where(
+        srgb <= 0.04045,
+        srgb / 12.92,
+        np.power((srgb + 0.055) / 1.055, 2.4),
+    ).astype(np.float32)
+
+
+def linear_to_srgb(linear: np.ndarray) -> np.ndarray:
+    """物理リニア輝度空間 (0.0〜1.0) を sRGB へ変換"""
+    linear = np.clip(linear, 0.0, 1.0)
+    return np.where(
+        linear <= 0.0031308,
+        linear * 12.92,
+        1.055 * np.power(linear, 1.0 / 2.4) - 0.055,
+    ).astype(np.float32)
+
+
+# ==============================================================================
+# 物理フィルタ・ノイズ合成関数群（純粋 NumPy / Pillow 実装）
+# ==============================================================================
+def fft_gaussian_blur(
+    arr: np.ndarray,
+    sigma: float,
+    sigma_minor: Optional[float] = None,
+    angle_deg: float = 0.0,
+    shift_xy: Tuple[float, float] = (0.0, 0.0),
+) -> np.ndarray:
+    """
+    FFT による高速ガウシアンブラー。
+    - sigma_minor 指定で楕円（異方性）カーネル、angle_deg でその主軸を回転
+    - shift_xy でサブピクセル精度の平行移動（圧板浮き・レンズ傾斜による滲みオフセット）
+    """
+    if sigma_minor is None:
+        sigma_minor = sigma
+    smax = max(sigma, sigma_minor)
+    if smax < 0.05 and abs(shift_xy[0]) < 1e-3 and abs(shift_xy[1]) < 1e-3:
+        return arr.astype(np.float32, copy=True)
+
+    pad = int(math.ceil(3.5 * smax + abs(shift_xy[0]) + abs(shift_xy[1]))) + 2
+    a = np.pad(arr.astype(np.float32), pad, mode="constant")
+    h, w = a.shape
+
+    fy = np.fft.fftfreq(h).astype(np.float32)[:, None]
+    fx = np.fft.rfftfreq(w).astype(np.float32)[None, :]
+    th = math.radians(angle_deg)
+    u = fx * math.cos(th) + fy * math.sin(th)
+    v = -fx * math.sin(th) + fy * math.cos(th)
+    tf = np.exp(-2.0 * math.pi ** 2 * (sigma ** 2 * u ** 2 + sigma_minor ** 2 * v ** 2))
+    if shift_xy[0] != 0.0 or shift_xy[1] != 0.0:
+        tf = tf * np.exp(-2j * math.pi * (fx * shift_xy[0] + fy * shift_xy[1]))
+
+    out = np.fft.irfft2(np.fft.rfft2(a) * tf, s=a.shape)
+    return np.maximum(out[pad:-pad, pad:-pad], 0.0).astype(np.float32)
+
+
+def approx_inner_distance(binary: np.ndarray, max_iter: int = 96) -> np.ndarray:
+    """
+    反復モルフォロジー収縮による近似距離変換（八角形メトリック）。
+    文字ストローク内部の中心尾根（LEDホットスポット）を scipy 非依存で高速に抽出。
+    """
+    dist = np.zeros(binary.shape, dtype=np.float32)
+    cur = binary.astype(bool).copy()
+    for i in range(max_iter):
+        if not cur.any():
+            break
+        dist += cur
+        p = np.pad(cur, 1, constant_values=False)
+        er = p[1:-1, 1:-1] & p[:-2, 1:-1] & p[2:, 1:-1] & p[1:-1, :-2] & p[1:-1, 2:]
+        if i % 2 == 1:
+            er &= p[:-2, :-2] & p[:-2, 2:] & p[2:, :-2] & p[2:, 2:]
+        cur = er
+    return dist
+
+
+def value_noise(rng: np.random.Generator, shape: Tuple[int, int], cell_y: float, cell_x: Optional[float] = None) -> np.ndarray:
+    """格子乱数を Bicubic 補間した滑らかな空間ゆらぎ（平均0・標準偏差1に正規化）"""
+    h, w = shape
+    cell_x = cell_y if cell_x is None else cell_x
+    cell_y = max(1.0, float(cell_y))
+    cell_x = max(1.0, float(cell_x))
+    gh = int(math.ceil(h / cell_y)) + 4
+    gw = int(math.ceil(w / cell_x)) + 4
+    grid = rng.standard_normal((gh, gw)).astype(np.float32)
+    up_w, up_h = int(math.ceil(gw * cell_x)), int(math.ceil(gh * cell_y))
+    up = np.asarray(Image.fromarray(grid).resize((up_w, up_h), Image.BICUBIC), dtype=np.float32)
+    oy = int(cell_y + rng.random() * cell_y)
+    ox = int(cell_x + rng.random() * cell_x)
+    out = up[oy:oy + h, ox:ox + w]
+    std = float(out.std())
+    return ((out - out.mean()) / std).astype(np.float32) if std > 1e-6 else np.zeros(shape, np.float32)
+
+
+def fbm_noise(rng: np.random.Generator, shape: Tuple[int, int], cell: float, octaves: int = 3, gain: float = 0.5) -> np.ndarray:
+    """多オクターブの雲状ノイズ（Fractal Brownian Motion）"""
+    acc = np.zeros(shape, dtype=np.float32)
+    amp, total = 1.0, 0.0
+    for i in range(octaves):
+        acc += value_noise(rng, shape, cell / (2 ** i)) * amp
+        total += amp
+        amp *= gain
+    acc /= total
+    std = float(acc.std())
+    return (acc / std).astype(np.float32) if std > 1e-6 else acc
+
+
+def bilinear_warp(field: np.ndarray, dx: np.ndarray, dy: np.ndarray) -> np.ndarray:
+    """変位場 (dx, dy) によるドメインワープ（波打ち再サンプリング）"""
+    h, w = field.shape
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    sx = np.clip(xx + dx, 0.0, w - 1.001)
+    sy = np.clip(yy + dy, 0.0, h - 1.001)
+    x0 = sx.astype(np.int32)
+    y0 = sy.astype(np.int32)
+    fx = sx - x0
+    fy = sy - y0
+    a = field[y0, x0]
+    b = field[y0, x0 + 1]
+    c = field[y0 + 1, x0]
+    d = field[y0 + 1, x0 + 1]
+    return (a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c * (1 - fx) * fy + d * fx * fy).astype(np.float32)
+
+
+# ==============================================================================
+# フォント・レイアウト管理
+# ==============================================================================
 @lru_cache(maxsize=16)
 def get_font_file_and_shear(font_type: str) -> Tuple[str, float]:
     """フォントファイルパスとシアー傾斜角度（度数）を返す"""
     if font_type in FONT_MAP:
         filename, shear_deg = FONT_MAP[font_type]
     else:
-        # デフォルトフォールバック
-        filename, shear_deg = "DSEG7Classic-Bold.ttf", 0.0
+        filename, shear_deg = "FDS7Classic-Bold.ttf", 0.0
 
     font_path = os.path.join(FONTS_DIR, filename)
     if not os.path.exists(font_path):
-        # 予備検索
-        alt_path = os.path.join(MODULE_DIR, filename)
-        if os.path.exists(alt_path):
-            font_path = alt_path
+        legacy_name = filename.replace("FDS7", "DSEG7").replace("FDS14", "DSEG14")
+        legacy_path = os.path.join(FONTS_DIR, legacy_name)
+        if os.path.exists(legacy_path):
+            font_path = legacy_path
+        else:
+            alt_path = os.path.join(MODULE_DIR, filename)
+            if os.path.exists(alt_path):
+                font_path = alt_path
 
     return font_path, shear_deg
 
@@ -47,23 +195,14 @@ def get_cached_truetype_font(font_path: str, size: int) -> ImageFont.FreeTypeFon
 
 
 def apply_shear_tilt(img: Image.Image, shear_deg: float) -> Image.Image:
-    """
-    画像を右傾斜（イタリック調）にアフィン変換する。
-    """
+    """画像を右傾斜（イタリック調）にアフィン変換する"""
     if abs(shear_deg) < 0.01:
         return img
 
     w, h = img.size
-    # tan(theta) での x 方向の変位
     shear_factor = math.tan(math.radians(shear_deg))
     offset_x = int(math.ceil(h * shear_factor))
     new_w = w + offset_x
-
-    # PIL の transform は逆マッピング行列 (a, b, c, d, e, f)
-    # x_src = a * x_dst + b * y_dst + c
-    # y_src = d * x_dst + e * y_dst + f
-    # ここで dst_x = src_x + (h - 1 - src_y) * shear_factor (文字下部基準)
-    # したがって src_x = dst_x - (h - y_dst) * shear_factor
     matrix = (1, shear_factor, -shear_factor * h, 0, 1, 0)
 
     transformed = img.transform(
@@ -104,18 +243,15 @@ def calculate_stamp_position(
     return pos_x, pos_y
 
 
-# フォントごとの視覚サイズ正規化係数キャッシュ
 _FONT_NORM_CACHE = {}
-
-# 基準サイズ（100pt描画時の "88 88 88" の理想視覚バウンディングボックス）
 _REF_TARGET_W = 360.0
 _REF_TARGET_H = 65.0
 
 
 def get_font_visual_norm_factor(font_path: str) -> float:
     """
-    フォントごとの内部メトリクス（EM枠に対する実グリフの高さ・字幅比率）の差を吸収し、
-    どのフォントを選んでも同じ font_scale で同じ視覚サイズになるよう正規化係数を算出する。
+    フォントごとの内部メトリクス差を吸収し、どのフォントを選んでも
+    同じ font_scale で同じ視覚サイズになるよう正規化係数を算出する。
     """
     if font_path in _FONT_NORM_CACHE:
         return _FONT_NORM_CACHE[font_path]
@@ -125,7 +261,6 @@ def get_font_visual_norm_factor(font_path: str) -> float:
         bbox = ref_font.getbbox("88 88 88")
         w = max(1.0, float(bbox[2] - bbox[0]))
         h = max(1.0, float(bbox[3] - bbox[1]))
-        # 横幅比率 (75%) と高さ比率 (25%) の加重幾何平均で視覚的な大きさを揃える
         norm_factor = ((_REF_TARGET_W / w) ** 0.75) * ((_REF_TARGET_H / h) ** 0.25)
         norm_factor = max(0.4, min(2.5, norm_factor))
     except Exception:
@@ -135,7 +270,7 @@ def get_font_visual_norm_factor(font_path: str) -> float:
     return norm_factor
 
 
-@lru_cache(maxsize=32)
+@lru_cache(maxsize=16)
 def render_date_mask_cached(
     text: str,
     font_path: str,
@@ -144,20 +279,18 @@ def render_date_mask_cached(
 ) -> Tuple[Image.Image, int, int]:
     """
     指定文字列のグレースケールマスク画像（Lモード）をキャッシュ生成する内部関数。
-    戻り値: (mask_image, text_width, text_height)
     """
+    safe_text = re.sub(r'[\r\n\t]+', ' ', text).strip() if text else " "
     norm_factor = get_font_visual_norm_factor(font_path)
     effective_font_size = max(10, int(round(font_size * norm_factor)))
     font = get_cached_truetype_font(font_path, effective_font_size)
 
-    # テキストサイズの計測
     dummy_img = Image.new("L", (1, 1), 0)
     dummy_draw = ImageDraw.Draw(dummy_img)
-    bbox = dummy_draw.textbbox((0, 0), text, font=font, anchor="lt")
+    bbox = dummy_draw.textbbox((0, 0), safe_text, font=font, anchor="lt")
     raw_w = max(1, bbox[2] - bbox[0])
     raw_h = max(1, bbox[3] - bbox[1])
 
-    # 描画用の一時カンバス
     pad_y = max(4, int(effective_font_size * 0.4))
     pad_x = max(4, int(effective_font_size * 0.4))
     canvas_w = raw_w + pad_x * 2
@@ -165,13 +298,11 @@ def render_date_mask_cached(
 
     mask = Image.new("L", (canvas_w, canvas_h), 0)
     draw = ImageDraw.Draw(mask)
-    draw.text((pad_x - bbox[0], pad_y - bbox[1]), text, fill=255, font=font, anchor="lt")
+    draw.text((pad_x - bbox[0], pad_y - bbox[1]), safe_text, fill=255, font=font, anchor="lt")
 
-    # 斜体（シアー変形）の適用
     if abs(shear_deg) > 0.01:
         mask = apply_shear_tilt(mask, shear_deg)
 
-    # 実際に点灯しているピクセルのタイトなバウンディングボックスで切り出す（フォント間の余白ズレを完全排除）
     tight_bbox = mask.getbbox()
     if tight_bbox is not None:
         mask = mask.crop(tight_bbox)
@@ -186,15 +317,16 @@ def render_date_mask(
     font_size: int,
     shear_deg: float = 0.0,
 ) -> Tuple[Image.Image, int, int]:
-    """
-    後方互換用公開インターフェース（キャッシュから取得してコピーを返す）。
-    """
+    """後方互換用公開インターフェース"""
     mask, w, h = render_date_mask_cached(text, font_path, font_size, shear_deg)
     return mask.copy(), w, h
 
 
-@lru_cache(maxsize=32)
-def generate_light_map_cached(
+# ==============================================================================
+# v2.0 光学露光マップ生成エンジン（H&D分光飽和・3階層有機ゆらぎ）
+# ==============================================================================
+@lru_cache(maxsize=16)
+def generate_light_map_cached_v2(
     date_text: str,
     font_path: str,
     base_font_size: int,
@@ -203,9 +335,19 @@ def generate_light_map_cached(
     exposure_intensity: float,
     core_glow: float,
     halation: float,
+    irregularity: float = 1.0,
+    grain: float = 1.0,
+    seed: int = 0,
 ) -> Tuple[np.ndarray, int, int, int]:
     """
-    3層光学ブラーと光量合成を行い、(light_rgb, text_w, text_h, blur_pad) をキャッシュ生成する。
+    v2.0 光学計算エンジン:
+    1. 近似距離変換による LED セグメント発光尾根（Hotspot）
+    2. Macro ゆらぎ（文字・セグメント単位の光量差＋レンズ周辺減光）
+    3. 多重 PSF 散乱（異方性・サブピクセルオフセット付き）
+    4. Meso ゆらぎ（圧板密着ムラ＋ハレーション輪郭の波打ち）
+    5. Micro ゆらぎ（銀塩グレイン＋現像色素雲による裾野ちぎれ）
+    6. H&D 分光感光モデル（赤→橙→黄→白の連続ブリーチ）
+    戻り値: (light_lin_rgb, text_w, text_h, blur_pad)
     """
     mask_core, text_w, text_h = render_date_mask_cached(
         text=date_text,
@@ -214,82 +356,171 @@ def generate_light_map_cached(
         shear_deg=shear_deg,
     )
 
-    blur_pad = max(10, int(base_font_size * 1.5))
+    fs = float(base_font_size)
+    blur_pad = max(16, int(fs * 2.2))
     padded_w = mask_core.width + blur_pad * 2
     padded_h = mask_core.height + blur_pad * 2
 
     padded_mask = Image.new("L", (padded_w, padded_h), 0)
     padded_mask.paste(mask_core, (blur_pad, blur_pad))
+    raw = np.asarray(padded_mask, dtype=np.float32) / 255.0
+    H, W = raw.shape
 
-    # 3層光学ブラーレイヤー
-    r_hal = max(1.0, base_font_size * 0.25 * halation)
-    layer_hal = padded_mask.filter(ImageFilter.GaussianBlur(r_hal))
+    irr = max(0.0, float(irregularity))
+    hal = max(0.01, float(halation))
+    E0 = float(exposure_intensity)
+    cg = float(core_glow)
 
-    r_body = max(0.5, base_font_size * 0.08)
-    layer_body = padded_mask.filter(ImageFilter.GaussianBlur(r_body))
+    # 決定論的シード乱数生成器
+    rng_macro = np.random.default_rng([int(seed) & 0xFFFFFFFF, 1])
+    rng_meso = np.random.default_rng([int(seed) & 0xFFFFFFFF, 2])
+    rng_micro = np.random.default_rng([int(seed) & 0xFFFFFFFF, 3])
 
-    r_core = max(0.2, base_font_size * 0.03 * core_glow)
-    layer_core = padded_mask.filter(ImageFilter.GaussianBlur(r_core))
+    # ---- Step 1: LED 発光尾根 ----
+    inside = raw > 0.30
+    dist = approx_inner_distance(inside)
+    dist = fft_gaussian_blur(dist, max(0.5, fs * 0.012)) * inside
+    dmax = max(1.0, float(np.percentile(dist[inside], 92))) if inside.any() else 1.0
+    ridge = np.power(np.clip(dist / dmax, 0.0, 1.25), 1.15)
 
-    # NumPy 配列化 (float32 [H, W, 1])
-    arr_hal = np.asarray(layer_hal, dtype=np.float32)[..., None] / 255.0
-    arr_body = np.asarray(layer_body, dtype=np.float32)[..., None] / 255.0
-    arr_core = np.asarray(layer_core, dtype=np.float32)[..., None] / 255.0
+    # ---- Step 2: ① Macro ゆらぎ ----
+    if irr > 0:
+        n_char = value_noise(rng_macro, (H, W), cell_y=fs * 4.0, cell_x=fs * 0.55)
+        n_seg = value_noise(rng_macro, (H, W), fs * 0.22)
+        ang = rng_macro.uniform(0, 2 * math.pi)
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        lens = math.cos(ang) * (xx - W / 2) / (W / 2) + math.sin(ang) * (yy - H / 2) / (H / 2)
+        gain = np.clip(1.0 + irr * (0.09 * n_char + 0.06 * n_seg + 0.07 * lens), 0.55, 1.45)
+    else:
+        gain = np.ones((H, W), np.float32)
 
-    palette = COLOR_PRESETS.get(preset_color, COLOR_PRESETS["Amber Classic"])
-    c_hal = np.asarray(palette["halation"], dtype=np.float32) / 255.0
-    c_body = np.asarray(palette["body"], dtype=np.float32) / 255.0
-    c_core = np.asarray(palette["core"], dtype=np.float32) / 255.0
+    slit = fft_gaussian_blur(raw, max(0.35, fs * 0.022))
+    hot = ridge * gain
+    source = (0.45 * slit * gain + 1.15 * hot * cg) * E0
 
-    # NumPy ベクトル化一括合成 (arr * color * factor)
-    light_rgb = (
-        arr_hal * (c_hal * (0.45 * halation))
-        + arr_body * (c_body * (0.95 * exposure_intensity))
-        + arr_core * (c_core * (1.10 * core_glow))
-    )
+    # ---- Step 3: 多重 PSF 散乱 ----
+    psf_core = fft_gaussian_blur(hot, max(0.45, fs * 0.025))
+    psf_narrow = fft_gaussian_blur(source, max(0.75, fs * 0.052))
 
-    return light_rgb, text_w, text_h, blur_pad
+    if irr > 0:
+        aniso = 1.0 + irr * 0.16 * rng_meso.uniform(0.4, 1.0)
+        hal_angle = rng_meso.uniform(0.0, 180.0)
+        sh_ang = rng_meso.uniform(0, 2 * math.pi)
+        sh_mag = irr * fs * 0.035
+        shift = (math.cos(sh_ang) * sh_mag, math.sin(sh_ang) * sh_mag)
+    else:
+        aniso, hal_angle, shift = 1.0, 0.0, (0.0, 0.0)
+
+    def halo_blur(sig: float, shift_scale: float) -> np.ndarray:
+        return fft_gaussian_blur(
+            source, sig * aniso, sig / aniso, hal_angle,
+            (shift[0] * shift_scale, shift[1] * shift_scale),
+        )
+
+    psf_mid = halo_blur(max(1.4, fs * 0.12 * math.sqrt(hal)), 0.4)
+    psf_wide = halo_blur(max(2.8, fs * 0.27 * hal), 1.0)
+    psf_veil = halo_blur(max(5.5, fs * 0.58 * hal), 1.8)
+    halo = (0.30 * psf_mid + 0.17 * psf_wide + 0.07 * psf_veil) * hal
+
+    # ---- Step 4: ② Meso ゆらぎ ----
+    if irr > 0:
+        cloud = fbm_noise(rng_meso, (H, W), fs * 1.4, octaves=2, gain=0.4)
+        halo = halo * np.clip(1.0 + irr * 0.14 * cloud, 0.5, 1.5)
+        wx = fbm_noise(rng_meso, (H, W), fs * 1.2, octaves=2) * (irr * fs * 0.055)
+        wy = fbm_noise(rng_meso, (H, W), fs * 1.2, octaves=2) * (irr * fs * 0.055)
+        halo = bilinear_warp(halo, wx, wy)
+        psf_narrow = bilinear_warp(psf_narrow, wx * 0.3, wy * 0.3)
+
+    core_E = (0.85 * hot * raw + 0.55 * psf_core) * cg * E0
+    body_E = (0.50 * slit * gain + 0.65 * psf_narrow) * E0
+
+    # ---- Step 5: ③ Micro ゆらぎ ----
+    total = core_E + body_E + halo
+    mod = np.ones((H, W), np.float32)
+    if grain > 0:
+        fine = rng_micro.standard_normal((H, W)).astype(np.float32)
+        clump = value_noise(rng_micro, (H, W), 2.2)
+        grain_field = 0.55 * fine + 0.45 * clump
+        env = np.clip(total * 2.2, 0.0, 1.0) * np.exp(-core_E * 1.6)
+        mod *= 1.0 + 0.22 * float(grain) * grain_field * env
+    if irr > 0:
+        dye = value_noise(rng_micro, (H, W), 1.8)
+        tail = np.exp(-total * 6.0) * np.clip(total * 8.0, 0.0, 1.0)
+        mod *= np.clip(1.0 + irr * 0.20 * dye * tail, 0.6, 1.4)
+
+    # ---- Step 6: H&D 分光感光 ----
+    spec = PHYSICAL_SPECTRA.get(preset_color, PHYSICAL_SPECTRA["Amber Classic"])
+    s_r, s_g, s_b = spec["sens"]
+    k_r, k_g, k_b = spec["scatter"]
+    bleach = np.power(np.clip(core_E, 0.0, 2.5), 1.5) * 1.35
+
+    E_r = ((core_E + body_E) * s_r + halo * s_r * k_r * 1.35 + bleach) * mod
+    E_g = ((core_E * 1.2 + body_E * 0.85) * s_g + halo * s_g * k_g * 0.70 + bleach * 0.95) * mod
+    E_b = ((core_E * 1.8 + body_E * 0.25) * s_b + halo * s_b * k_b * 0.20 + bleach * 0.65) * mod
+    E_rgb = np.maximum(np.stack([E_r, E_g, E_b], axis=-1), 0.0)
+
+    light_lin = 1.0 - np.exp(-np.power(E_rgb, 1.15))
+    light_lin *= np.asarray(spec["tint"], dtype=np.float32)[None, None, :]
+
+    return light_lin.astype(np.float32), text_w, text_h, blur_pad
 
 
+# ==============================================================================
+# 公開インターフェース
+# ==============================================================================
 def render_film_date_stamp(
     image: Union[Image.Image, np.ndarray],
     config: Optional[DateStampConfig] = None,
     seed: Optional[int] = None,
+    return_details: bool = False,
     **kwargs
-) -> Union[Image.Image, np.ndarray]:
+) -> Union[Image.Image, np.ndarray, Tuple[Union[Image.Image, np.ndarray], np.ndarray, str]]:
     """
-    ベース画像に対してフィルム日付スタンプを光学的に露光・焼き付け合成する。
+    ベース画像に対してフィルム日付スタンプを光学的に露光・焼き付け合成する (v2.0)。
 
     Parameters:
-        image: PIL.Image または NumPy配列 [H, W, 3] (float32 0..1 or uint8 0..255)
+        image: PIL.Image または NumPy配列 [H, W, C] (float32 0..1 or uint8 0..255)
         config: DateStampConfig インスタンス（省略時はデフォルト）
-        seed: random_vintage 用の乱数シード
+        seed: random_vintage および有機ゆらぎ用の乱数シード
+        return_details: True の場合、(result_image, mask_np [H, W], date_text) のタプルを返す
         **kwargs: config を上書きする個別パラメータ
     """
     if config is None:
         config = DateStampConfig()
-
-    # style_preset の適用
-    if "style_preset" in kwargs:
-        config.style_preset = kwargs["style_preset"]
-    config.apply_style_preset_if_set()
+        if "style_preset" in kwargs:
+            config.style_preset = kwargs["style_preset"]
+        config.apply_style_preset_if_set()
 
     # kwargs による動的オーバーライド
     for k, v in kwargs.items():
-        if k != "style_preset" and hasattr(config, k) and v is not None:
+        if hasattr(config, k) and v is not None:
             setattr(config, k, v)
 
     # 入力の型判定
     is_numpy = isinstance(image, np.ndarray)
+    orig_channels = 3
+    alpha_channel = None
+
     if is_numpy:
         np_input = image
+        if np_input.ndim == 2:
+            np_input = np_input[:, :, None]
+
+        orig_channels = np_input.shape[2]
+
         if np_input.dtype == np.uint8:
-            base_rgb = np_input.astype(np.float32) / 255.0
+            base_full = np_input.astype(np.float32) / 255.0
         else:
-            if np_input.max() > 1.01:
-                base_rgb = np_input.astype(np.float32) / 255.0
-            else:
-                base_rgb = np_input.astype(np.float32).copy()
+            base_full = np.clip(np_input.astype(np.float32), 0.0, 1.0)
+
+        if orig_channels == 4:
+            base_rgb = base_full[:, :, :3]
+            alpha_channel = base_full[:, :, 3:4]
+        elif orig_channels == 1:
+            base_rgb = np.repeat(base_full, 3, axis=2)
+        else:
+            base_rgb = base_full[:, :, :3]
+
         h, w = base_rgb.shape[:2]
     else:
         pil_img = image.convert("RGB")
@@ -306,11 +537,11 @@ def render_film_date_stamp(
     if config.italic_angle > 0.0:
         shear_deg = config.italic_angle
 
-    # フォントサイズ (短辺の約 3.2% * font_scale)
     base_font_size = max(10, int(s * 0.032 * config.font_scale))
 
-    # 3〜6. キャッシュ化された光量マップの高速取得（3層ブラー・NumPyベクトル演算）
-    light_rgb, text_w, text_h, blur_pad = generate_light_map_cached(
+    # 3. v2 光学露光マップの取得 (リニア RGB [H, W, 3])
+    eff_seed = seed if seed is not None else 0
+    light_lin, text_w, text_h, blur_pad = generate_light_map_cached_v2(
         date_text=date_text,
         font_path=font_path,
         base_font_size=base_font_size,
@@ -319,11 +550,14 @@ def render_film_date_stamp(
         exposure_intensity=round(float(config.exposure_intensity), 3),
         core_glow=round(float(config.core_glow), 3),
         halation=round(float(config.halation), 3),
+        irregularity=round(float(config.irregularity), 2),
+        grain=round(float(config.grain), 2),
+        seed=eff_seed,
     )
 
-    stamp_h, stamp_w = light_rgb.shape[:2]
+    stamp_h, stamp_w = light_lin.shape[:2]
 
-    # 7. 配置計算 (基準となるテキスト本体の矩形を考慮)
+    # 4. 配置計算
     margin_x_px = int(s * 0.05 * config.margin_x)
     margin_y_px = int(s * 0.04 * config.margin_y)
 
@@ -337,11 +571,9 @@ def render_film_date_stamp(
         margin_y_px=margin_y_px,
     )
 
-    # パディング付きカンバス全体の配置原点
     origin_x = text_pos_x - blur_pad
     origin_y = text_pos_y - blur_pad
 
-    # 貼り付け領域と切り出し境界のクリッピング
     dst_x1 = max(0, origin_x)
     dst_y1 = max(0, origin_y)
     dst_x2 = min(w, origin_x + stamp_w)
@@ -352,25 +584,57 @@ def render_film_date_stamp(
     src_x2 = src_x1 + (dst_x2 - dst_x1)
     src_y2 = src_y1 + (dst_y2 - dst_y1)
 
+    mask_out = np.zeros((h, w), dtype=np.float32)
+
     if dst_x2 > dst_x1 and dst_y2 > dst_y1 and src_x2 > src_x1 and src_y2 > src_y1:
-        sub_base = base_rgb[dst_y1:dst_y2, dst_x1:dst_x2]
-        sub_light = light_rgb[src_y1:src_y2, src_x1:src_x2]
+        sub_base_srgb = base_rgb[dst_y1:dst_y2, dst_x1:dst_x2]
+        sub_light_lin = light_lin[src_y1:src_y2, src_x1:src_x2]
 
         if config.optical_burn:
-            # フィルム感光露光式（加算 + Reinhard肩特性によるハイライト飽和圧縮）
-            # 背景が暗い場所では鮮明に発光、背景が明るい白飛び部では光が溶け込んで埋もれる
-            combined = sub_base + sub_light
-            over = np.maximum(0.0, combined - 1.0)
-            combined = combined / (1.0 + over * 0.8)
+            # リニア空間での乳剤感光余力＋フィルム肩特性合成
+            sub_base_lin = srgb_to_linear(sub_base_srgb)
+            luma = (
+                0.2126 * sub_base_lin[..., 0:1]
+                + 0.7152 * sub_base_lin[..., 1:2]
+                + 0.0722 * sub_base_lin[..., 2:3]
+            )
+            # 背景が明るいほど乳剤の感光余力（headroom）が小さくなり、文字が溶け込んで埋もれる
+            headroom = np.clip(1.0 - np.power(luma, 1.35) * 0.72, 0.12, 1.0)
+            eff_light = sub_light_lin * headroom
+
+            raw_sum = sub_base_lin + eff_light * 1.18
+            compressed = 1.0 - np.exp(-raw_sum * 1.20) * (1.0 - sub_base_lin * np.exp(-eff_light * 2.0))
+            t = np.clip((raw_sum - 0.45) / 0.75, 0.0, 1.0)
+            combined_lin = np.clip(raw_sum * (1.0 - t) + compressed * t, 0.0, 1.0)
+
+            base_rgb[dst_y1:dst_y2, dst_x1:dst_x2] = linear_to_srgb(combined_lin)
         else:
-            # スクリーン合成
-            combined = 1.0 - (1.0 - sub_base) * (1.0 - np.clip(sub_light, 0.0, 1.0))
+            # スクリーン合成 (sRGB)
+            sub_light_srgb = linear_to_srgb(sub_light_lin)
+            combined = 1.0 - (1.0 - sub_base_srgb) * (1.0 - np.clip(sub_light_srgb, 0.0, 1.0))
+            base_rgb[dst_y1:dst_y2, dst_x1:dst_x2] = np.clip(combined, 0.0, 1.0)
 
-        base_rgb[dst_y1:dst_y2, dst_x1:dst_x2] = np.clip(combined, 0.0, 1.0)
+        # マスク領域の抽出（光量の最大チャンネル）
+        sub_mask = np.clip(np.max(sub_light_lin, axis=-1), 0.0, 1.0)
+        mask_out[dst_y1:dst_y2, dst_x1:dst_x2] = sub_mask
 
+    # 出力形式の復元
     if is_numpy:
+        if orig_channels == 4:
+            result = np.concatenate([base_rgb, alpha_channel], axis=-1)
+        elif orig_channels == 1:
+            luma = (0.299 * base_rgb[:, :, 0] + 0.587 * base_rgb[:, :, 1] + 0.114 * base_rgb[:, :, 2])[:, :, None]
+            result = luma
+        else:
+            result = base_rgb
+
         if np_input.dtype == np.uint8:
-            return (base_rgb * 255.0).astype(np.uint8)
-        return base_rgb
+            final_img = (result * 255.0).astype(np.uint8)
+        else:
+            final_img = result
     else:
-        return Image.fromarray((base_rgb * 255.0).astype(np.uint8))
+        final_img = Image.fromarray((base_rgb * 255.0 + 0.5).astype(np.uint8))
+
+    if return_details:
+        return final_img, mask_out, date_text
+    return final_img

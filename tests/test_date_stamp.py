@@ -2,6 +2,7 @@
 FilmDateStamp 単体テスト・回帰テスト
 """
 import unittest
+import math
 import datetime
 import numpy as np
 import torch
@@ -221,20 +222,30 @@ class TestComfyUINode(unittest.TestCase):
             seed=123,
         )
 
-        self.assertEqual(len(outputs), 1)
-        out_tensor = outputs[0]
+        self.assertEqual(len(outputs), 3)
+        out_tensor, out_mask, out_text = outputs
         self.assertEqual(out_tensor.shape, (2, 256, 256, 3))
         self.assertEqual(out_tensor.dtype, torch.float32)
         # 発光により値が上がっていることを確認
         self.assertGreater(out_tensor.max().item(), 0.0)
+
+        # MASK 出力の検証 [B, H, W]
+        self.assertEqual(out_mask.shape, (2, 256, 256))
+        self.assertEqual(out_mask.dtype, torch.float32)
+        self.assertGreater(out_mask.max().item(), 0.0)
+        self.assertLessEqual(out_mask.max().item(), 1.0)
+
+        # STRING 出力の検証
+        self.assertIsInstance(out_text, str)
+        self.assertGreater(len(out_text), 0)
 
     def test_node_preset_override_preserves_widgets(self):
         """style_preset が選択されていても、個別ウィジェットで渡された引数が尊重されることの検証"""
         node = FilmDateStamp()
         input_tensor = torch.zeros((1, 128, 128, 3), dtype=torch.float32)
 
-        # プリセットは Japanese Tokyo 90s（本来は custom / '98 12 24）だが、
-        # ウィジェット引数として random_vintage が指定されている場合、強制上書きされずに random_vintage が適用される
+        # プリセットは Japanese Tokyo 90s (デフォルト bottom_right) だが、
+        # ウィジェット引数として position="top_left" が指定されている場合、top_left に描画される
         outputs = node.apply_stamp(
             image=input_tensor,
             style_preset="Japanese Tokyo 90s",
@@ -244,7 +255,38 @@ class TestComfyUINode(unittest.TestCase):
             core_glow=1.0,
             halation=1.0,
             optical_burn=True,
-            date_mode="random_vintage",
+            date_mode="custom",
+            date_string="88 88 88",
+            date_format="'YY MM DD",
+            show_time=False,
+            position="top_left",
+            font_scale=1.0,
+            margin_x=1.0,
+            margin_y=1.0,
+            seed=42,
+        )
+        self.assertEqual(len(outputs), 3)
+        out, out_mask, out_text = outputs
+        self.assertEqual(out_text, "88 88 88")
+        # top_left (上半分・左半分) に光が存在し、bottom_right (右下) は空であることを検証
+        self.assertGreater(out[0, 0:40, 0:60].max().item(), 0.1)
+        self.assertEqual(out[0, 80:128, 60:128].max().item(), 0.0)
+        # マスクも top_left にのみ値が存在することを確認
+        self.assertGreater(out_mask[0, 0:40, 0:60].max().item(), 0.1)
+        self.assertEqual(out_mask[0, 80:128, 60:128].max().item(), 0.0)
+
+    def test_rgba_and_grayscale_input(self):
+        """RGBA (4ch) や 1ch グレースケールテンソルが正常に処理され、チャンネル数が維持されることの検証"""
+        node = FilmDateStamp()
+        base_kwargs = dict(
+            style_preset="Custom",
+            font_type="DSEG7_Classic (7-Segment)",
+            preset_color="Amber Classic",
+            exposure_intensity=1.0,
+            core_glow=1.0,
+            halation=1.0,
+            optical_burn=True,
+            date_mode="custom",
             date_string="'98 12 24",
             date_format="'YY MM DD",
             show_time=False,
@@ -252,10 +294,159 @@ class TestComfyUINode(unittest.TestCase):
             font_scale=1.0,
             margin_x=1.0,
             margin_y=1.0,
-            seed=42,
+            seed=0,
         )
-        self.assertEqual(len(outputs), 1)
-        self.assertGreater(outputs[0].max().item(), 0.0)
+        # 1. RGBA (4ch)
+        rgba_img = torch.zeros((1, 128, 128, 4), dtype=torch.float32)
+        rgba_img[:, :, :, 3] = 0.75  # アルファ値
+        out_rgba = node.apply_stamp(image=rgba_img, **base_kwargs)[0]
+        self.assertEqual(out_rgba.shape, (1, 128, 128, 4))
+        # アルファチャンネルが保持されているか
+        self.assertAlmostEqual(out_rgba[0, 0, 0, 3].item(), 0.75, places=3)
+        self.assertGreater(out_rgba[0, :, :, :3].max().item(), 0.0)
+
+        # 2. 1ch グレースケール
+        gray_img = torch.zeros((1, 128, 128, 1), dtype=torch.float32)
+        out_gray = node.apply_stamp(image=gray_img, **base_kwargs)[0]
+        self.assertEqual(out_gray.shape, (1, 128, 128, 1))
+        self.assertGreater(out_gray.max().item(), 0.0)
+
+    def test_hdr_overshoot_not_darkened(self):
+        """1.01 を超える float 画像で、画像全体が誤って /255 されて暗転しないことの検証"""
+        node = FilmDateStamp()
+        # 背景を 0.5 で埋め、1画素だけ 1.05 にする
+        img = torch.full((1, 128, 128, 3), 0.5, dtype=torch.float32)
+        img[0, 0, 0, 0] = 1.05
+
+        out = node.apply_stamp(
+            image=img,
+            style_preset="Custom",
+            font_type="DSEG7_Classic (7-Segment)",
+            preset_color="Amber Classic",
+            exposure_intensity=1.0,
+            core_glow=1.0,
+            halation=1.0,
+            optical_burn=True,
+            date_mode="custom",
+            date_string="'98 12 24",
+            date_format="'YY MM DD",
+            show_time=False,
+            position="bottom_right",
+            font_scale=1.0,
+            margin_x=1.0,
+            margin_y=1.0,
+            seed=0,
+        )[0]
+        # 背景（スタンプの影響のない左上）が ~0.5 を維持していること（誤って 0.002 に暗転していないこと）
+        self.assertAlmostEqual(out[0, 10, 10, 0].item(), 0.5, places=2)
+
+    def test_multiline_and_special_chars_sanitized(self):
+        """改行やタブ、制御文字を含む文字列でもクラッシュせず安全に描画されることの検証"""
+        node = FilmDateStamp()
+        img = torch.zeros((1, 128, 128, 3), dtype=torch.float32)
+        out = node.apply_stamp(
+            image=img,
+            style_preset="Custom",
+            font_type="DSEG7_Classic (7-Segment)",
+            preset_color="Amber Classic",
+            exposure_intensity=1.0,
+            core_glow=1.0,
+            halation=1.0,
+            optical_burn=True,
+            date_mode="custom",
+            date_string="'98\n12\t24",
+            date_format="'YY MM DD",
+            show_time=False,
+            position="bottom_right",
+            font_scale=1.0,
+            margin_x=1.0,
+            margin_y=1.0,
+            seed=0,
+        )[0]
+        self.assertGreater(out.max().item(), 0.0)
+
+    def test_is_changed_current_date(self):
+        """date_mode == 'current_date' で再評価を促すため NaN が返ることの検証"""
+        val_curr = FilmDateStamp.IS_CHANGED(torch.zeros((1, 1, 1, 3)), date_mode="current_date")
+        self.assertTrue(math.isnan(val_curr))
+
+        val_custom = FilmDateStamp.IS_CHANGED(torch.zeros((1, 1, 1, 3)), date_mode="custom")
+        self.assertEqual(val_custom, "")
+
+    def test_js_and_python_presets_consistency(self):
+        """web/js/film_date_stamp.js と film_config.py のプリセット定義が同期していることの検証"""
+        import re, os
+        js_path = os.path.join(os.path.dirname(__file__), "..", "web", "js", "film_date_stamp.js")
+        with open(js_path, "r", encoding="utf-8") as f:
+            js_content = f.read()
+
+        for preset_name, preset_dict in STYLE_PRESETS.items():
+            if preset_name == "Custom" or preset_dict is None:
+                continue
+            self.assertIn(f'"{preset_name}"', js_content, f"Preset '{preset_name}' is missing in film_date_stamp.js")
+            # 主要なキーが JS に含まれているかチェック
+            for key in ("date_mode", "date_format", "font_type", "preset_color", "position"):
+                expected_val = preset_dict[key]
+                self.assertIn(f'"{expected_val}"', js_content, f"Value '{expected_val}' for key '{key}' in preset '{preset_name}' missing in JS")
+
+    def test_official_workflow_widget_mapping(self):
+        """公式ワークフロー JSON の FilmDateStamp ノードの widgets_values 順序が INPUT_TYPES と完全一致することの検証"""
+        import json, os
+        wf_path = os.path.join(os.path.dirname(__file__), "..", "workflows", "film_date_stamp_workflow.json")
+        with open(wf_path, "r", encoding="utf-8") as f:
+            wf_data = json.load(f)
+
+        fds_node = next((n for n in wf_data["nodes"] if n["type"] == "FilmDateStamp"), None)
+        self.assertIsNotNone(fds_node, "FilmDateStamp node not found in official workflow")
+
+        # INPUT_TYPES のウィジェット順
+        input_types = FilmDateStamp.INPUT_TYPES()
+        expected_widgets = list(input_types["required"].keys())
+        if "image" in expected_widgets:
+            expected_widgets.remove("image")  # 画像入力スロット
+        if "optional" in input_types:
+            expected_widgets.extend(list(input_types["optional"].keys()))
+
+        values = fds_node["widgets_values"]
+        self.assertEqual(len(values), len(expected_widgets), f"Workflow widgets_values length mismatch: expected {len(expected_widgets)}, got {len(values)}")
+
+    def test_mask_and_string_outputs(self):
+        """STRING および MASK 出力が正しく生成され、形式・値が適切であることの検証"""
+        node = FilmDateStamp()
+        img = torch.zeros((1, 100, 100, 3), dtype=torch.float32)
+
+        out_img, out_mask, out_text = node.apply_stamp(
+            image=img,
+            style_preset="Custom",
+            font_type="DSEG7_Classic (7-Segment)",
+            preset_color="Amber Classic",
+            exposure_intensity=1.0,
+            core_glow=1.0,
+            halation=1.0,
+            optical_burn=True,
+            date_mode="random_vintage",
+            date_string="",
+            date_format="'YY MM DD",
+            show_time=True,
+            position="bottom_right",
+            font_scale=1.0,
+            margin_x=1.0,
+            margin_y=1.0,
+            seed=777,
+        )
+
+        # 1. STRING 出力の検証 (例: '95 03 14 12:45 のようなフォーマット)
+        self.assertTrue(out_text.startswith("'"), f"Unexpected date string format: {out_text}")
+        self.assertIn(":", out_text, f"show_time=True should contain time: {out_text}")
+
+        # 2. MASK 出力の検証
+        self.assertEqual(out_mask.shape, (1, 100, 100))
+        self.assertEqual(out_mask.dtype, torch.float32)
+        # 背景（左上）はマスク値 0.0
+        self.assertEqual(out_mask[0, 0:20, 0:20].max().item(), 0.0)
+        # 文字配置位置（右下）はマスク値が 0.0 超〜1.0 以下
+        self.assertGreater(out_mask[0, 50:100, 50:100].max().item(), 0.5)
+        self.assertLessEqual(out_mask.max().item(), 1.0)
 
 
 if __name__ == "__main__":
