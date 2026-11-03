@@ -1,0 +1,184 @@
+{
+  "id": "film-date-stamp-workflow",
+  "revision": 0,
+  "last_node_id": 4,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Note",
+      "pos": [
+        -380,
+        50
+      ],
+      "size": [
+        350,
+        560
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note"
+      },
+      "widgets_values": [
+        "【FilmDateStamp 公式ワークフロー】\n\nフィルム写真の感光乳剤に焼き付けられる「クォーツデート（日付スタンプ）」の光学・物理質感を再現する特化ノードです。\n\n■ 使い方:\n最上段の `style_preset` から好みの地域・文化・時代（Japanese, American, European, Hong Kong など）を選ぶだけで、フォントや光学エフェクト、日付形式、配置が自動セットされます。\n各パラメータを手動で変更すると自動的に「Custom」に切り替わり、好みの微調整が行えます。\n\n■ プリセット一覧:\n- Japanese Tokyo 90s: 90年代日本の街角・日常スナップ（'YY MM DD / 7セグ斜体 / アンバー）\n- Japanese Snap (Disposable): 写ルンです風使い捨てカメラ（'YY MM DD + 時分 / 縦長ドット / オレンジ）\n- American West Coast: 90s西海岸・ロードトリップ（MM DD 'YY / 7セグ斜体 / ゴールデン）\n- American 80s (Red Quartz): 80年代モーテル・ホームビデオ感（MM DD 'YY / 7セグ直立 / クォーツレッド）\n- European Classic (Paris/Berlin): 欧州の石畳・上品な佇まい（DD.MM.YY / 7セグ直立 / 控えめアンバー）\n- Hong Kong Neon (90s Cinema): 90年代香港ネオン映画調（'YY MM DD / 14セグ斜体 / サイバーグリーン）\n- Y2K Digicam (Early 2000s): 2000年代初期コンデジLCD液晶（'YY MM DD + 時分 / 液晶等幅 / ゴールデン）\n- Compact Fine Dot (Minimal): 超高精細ドットマトリクス（'YY MM DD + 時分 / 高精細ドット / オレンジ）\n\n■ 主な特徴・機能:\n1. 光学感光（Optical Burn-in）:\n   - フィルム乳剤へのLED露光をシミュレート（加算＋フィルム肩特性圧縮）。\n   - 白背景や高輝度部分では、光が飽和して自然に「文字が埋もれて見えにくくなる」実物の白飛び現象を再現。\n2. 3層光路モデル:\n   - 高輝度白コア ＋ アンバー主発光 ＋ 乳剤内赤色散乱（ハレーション）。\n3. 日付と時刻（show_time）:\n   - 日付フォーマットに関わらず、`show_time` の True/False で時刻（HH:MM）の表示・非表示を直感的に切り替え可能。"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        20,
+        50
+      ],
+      "size": [
+        340,
+        520
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            1
+          ],
+          "localized_name": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "localized_name": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "FilmDateStamp",
+      "pos": [
+        400,
+        50
+      ],
+      "size": [
+        380,
+        520
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            2
+          ],
+          "localized_name": "image"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FilmDateStamp"
+      },
+      "widgets_values": [
+        "Japanese Tokyo 90s",
+        "DSEG7_Italic (7-Segment)",
+        "Amber Classic",
+        1.0,
+        1.0,
+        1.0,
+        true,
+        "random_vintage",
+        "'98 12 24",
+        "'YY MM DD",
+        false,
+        "bottom_right",
+        1.0,
+        1.0,
+        1.0,
+        42
+      ]
+    },
+    {
+      "id": 4,
+      "type": "PreviewImage",
+      "pos": [
+        820,
+        50
+      ],
+      "size": [
+        420,
+        520
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        400,
+        50
+      ]
+    }
+  },
+  "version": 0.4
+}
