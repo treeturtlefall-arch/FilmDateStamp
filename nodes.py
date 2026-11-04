@@ -1,6 +1,6 @@
 """
-FilmDateStamp - ComfyUI ノード定義層
-PyTorch Tensor との相互変換および高速バッチ処理を行う。
+FilmDateStamp - ComfyUI Node Layer
+Handles PyTorch Tensor conversions, parameter dispatch, and batch processing.
 """
 import torch
 import numpy as np
@@ -29,7 +29,8 @@ except (ImportError, ValueError):
 
 class FilmDateStamp:
     """
-    フィルム乳剤へのLED光学感光（Optical Burn-in）をシミュレートするクォーツデートスタンプノード。
+    Simulates authentic film quartz date stamps with physical optical burn-in,
+    multi-scale halation, and emulsion highlight headroom roll-off.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -38,22 +39,19 @@ class FilmDateStamp:
                 "image": ("IMAGE",),
                 "style_preset": (list(STYLE_PRESETS.keys()), {"default": "Custom"}),
                 # 光学・フォント設定 (プリセット連動項目)
-                "font_type": (SUPPORTED_FONTS, {"default": "DSEG7_Classic (7-Segment)"}),
+                "font_type": (SUPPORTED_FONTS, {"default": "FDS7_Strict_Compact (80s -7°)"}),
                 "preset_color": (list(COLOR_PRESETS.keys()), {"default": "Amber Classic"}),
                 "exposure_intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "core_glow": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "halation": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
-                "optical_burn": ("BOOLEAN", {"default": True}),
-                # 日付設定
-                "date_mode": (["custom", "current_date", "random_vintage"], {"default": "custom"}),
+                # 日付設定 (直接文字列 または "auto" / "today" / "random")
                 "date_string": ("STRING", {"default": "'98 12 24"}),
                 "date_format": (SUPPORTED_DATE_FORMATS, {"default": "'YY MM DD"}),
                 "show_time": ("BOOLEAN", {"default": False}),
                 # レイアウト設定
                 "position": (SUPPORTED_POSITIONS, {"default": "bottom_right"}),
                 "font_scale": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 2.5, "step": 0.05}),
-                "margin_x": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
-                "margin_y": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
+                "margin": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
             },
             "optional": {
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
@@ -67,11 +65,12 @@ class FilmDateStamp:
     CATEGORY = "image/film"
 
     @classmethod
-    def IS_CHANGED(cls, image, date_mode="custom", **kwargs):
+    def IS_CHANGED(cls, image, date_string="'98 12 24", **kwargs):
         """
-        current_date の場合、キャッシュによる固定化を防ぎ実行時の最新日時を反映する。
+        auto / today / now の場合、キャッシュによる固定化を防ぎ実行時の最新日時を反映する。
         """
-        if date_mode == "current_date":
+        raw_key = str(date_string).strip().lower()
+        if raw_key in ("auto", "today", "now"):
             return float("NaN")
         return ""
 
@@ -84,15 +83,12 @@ class FilmDateStamp:
         exposure_intensity: float,
         core_glow: float,
         halation: float,
-        optical_burn: bool,
-        date_mode: str,
         date_string: str,
         date_format: str,
         show_time: bool,
         position: str,
         font_scale: float,
-        margin_x: float,
-        margin_y: float,
+        margin: float,
         seed: int = 0,
         irregularity: float = 1.0,
     ):
@@ -101,7 +97,6 @@ class FilmDateStamp:
         """
         config = DateStampConfig(
             style_preset=style_preset,
-            date_mode=date_mode,
             date_string=date_string,
             date_format=date_format,
             show_time=show_time,
@@ -110,17 +105,11 @@ class FilmDateStamp:
             exposure_intensity=exposure_intensity,
             core_glow=core_glow,
             halation=halation,
-            optical_burn=optical_burn,
             position=position,
             font_scale=font_scale,
-            margin_x=margin_x,
-            margin_y=margin_y,
+            margin=margin,
             irregularity=irregularity,
         )
-
-        # ComfyUI フロントエンドではプリセット選択時に各ウィジェットが自動同期されるため、
-        # ノード実行時はウィジェットから渡された現在の入力値をそのまま使用します（不要な再上書きを防止）。
-        # ※ style_preset == "Custom" 以外で直接 API 実行された場合でも、渡された個別ウィジェット引数が尊重されます。
 
         batch_size = image.shape[0]
         out_list = []
@@ -131,7 +120,7 @@ class FilmDateStamp:
             # PyTorch Tensor [H, W, C] -> NumPy float32
             img_np = image[b].cpu().numpy().copy()
 
-            # バッチごとに異なるランダム日付を付与（seed + b）
+            # バッチごとに異なるランダム日付・ゆらぎを付与（seed + b）
             batch_seed = (seed + b) if seed is not None else None
 
             result_np, mask_np, date_text = render_film_date_stamp(

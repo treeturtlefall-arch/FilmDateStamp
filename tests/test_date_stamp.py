@@ -23,7 +23,6 @@ from film_stamp import (
     render_film_date_stamp,
     render_date_mask,
     get_font_file_and_shear,
-    apply_shear_tilt,
     calculate_stamp_position,
 )
 from nodes import FilmDateStamp
@@ -45,6 +44,14 @@ class TestFilmConfig(unittest.TestCase):
                 for c in rgb:
                     self.assertTrue(0 <= c <= 255)
 
+        # 特殊・空想カラー（Cyber Green, Neo Pink, Crimson Red）が末尾に配置されていることの検証
+        preset_keys = list(COLOR_PRESETS.keys())
+        self.assertIn("Cyber Green", preset_keys[-3:])
+        self.assertIn("Neo Pink", preset_keys[-3:])
+        self.assertIn("Crimson Red", preset_keys[-3:])
+        # Bulb Amber が削除されていること
+        self.assertNotIn("Bulb Amber", COLOR_PRESETS)
+
     def test_style_presets(self):
         """スタイルプリセットの定義と適用検証（地域・文化プリセット）"""
         self.assertIn("Japanese Snap (Disposable)", STYLE_PRESETS)
@@ -53,8 +60,7 @@ class TestFilmConfig(unittest.TestCase):
         self.assertEqual(fuji_preset["preset_color"], "Fuji Orange")
         self.assertEqual(fuji_preset["core_glow"], 0.50)
         self.assertEqual(fuji_preset["font_scale"], 1.20)
-        self.assertEqual(fuji_preset["margin_x"], 1.50)
-        self.assertEqual(fuji_preset["margin_y"], 1.50)
+        self.assertEqual(fuji_preset["margin"], 1.50)
         self.assertTrue(fuji_preset["show_time"])
 
         # DateStampConfig への適用確認
@@ -64,21 +70,24 @@ class TestFilmConfig(unittest.TestCase):
         self.assertEqual(cfg.preset_color, "Fuji Orange")
         self.assertEqual(cfg.core_glow, 0.50)
         self.assertEqual(cfg.font_scale, 1.20)
+        self.assertEqual(cfg.margin, 1.50)
         self.assertTrue(cfg.show_time)
 
-        # 地域別プリセットの存在確認
-        expected_presets = [
+        # 主要プリセットの存在確認およびマージン初期値の検証
+        margin_115_presets = [
             "Japanese Tokyo 90s",
-            "Japanese Snap (Disposable)",
             "American West Coast",
             "American 80s (Red Quartz)",
             "European Classic (Paris/Berlin)",
-            "Hong Kong Neon (90s Cinema)",
-            "Y2K Digicam (Early 2000s)",
-            "Compact Fine Dot (Minimal)",
+            "Monochrome 70s (Canodate E)",
+            "Vintage 70s Color (Datematic)",
         ]
-        for name in expected_presets:
+        for name in margin_115_presets:
             self.assertIn(name, STYLE_PRESETS)
+            self.assertEqual(STYLE_PRESETS[name]["margin"], 1.15)
+            c = DateStampConfig(style_preset=name)
+            c.apply_style_preset_if_set()
+            self.assertEqual(c.margin, 1.15)
 
     def test_format_datetime(self):
         """各日付フォーマット記法および show_time による時刻付加の検証"""
@@ -99,28 +108,29 @@ class TestFilmConfig(unittest.TestCase):
         self.assertEqual(format_datetime(dt, "DD.MM.YY", show_time=True), "24.12.98 14:35")
 
     def test_resolve_date_text_modes(self):
-        """custom, current_date, random_vintage の各モードおよび show_time の解決"""
-        # custom (show_time=False で末尾時刻トリム)
-        cfg_custom_with_time = DateStampConfig(date_mode="custom", date_string="'93 05 10 18:30", show_time=False)
+        """direct string, auto, today, random の各キーワード解決および show_time の制御"""
+        # 1. 直接指定 (show_time=False で末尾時刻トリム)
+        cfg_custom_with_time = DateStampConfig(date_string="'93 05 10 18:30", show_time=False)
         self.assertEqual(resolve_date_text(cfg_custom_with_time), "'93 05 10")
 
-        # custom (show_time=True で時刻保持)
-        cfg_custom_keep_time = DateStampConfig(date_mode="custom", date_string="'93 05 10 18:30", show_time=True)
+        # 2. 直接指定 (show_time=True で時刻保持)
+        cfg_custom_keep_time = DateStampConfig(date_string="'93 05 10 18:30", show_time=True)
         self.assertEqual(resolve_date_text(cfg_custom_keep_time), "'93 05 10 18:30")
 
-        # custom (show_time=True で時刻自動補完)
-        cfg_custom_auto_time = DateStampConfig(date_mode="custom", date_string="'93 05 10", show_time=True)
+        # 3. 直接指定 (show_time=True で時刻自動補完)
+        cfg_custom_auto_time = DateStampConfig(date_string="'93 05 10", show_time=True)
         self.assertEqual(resolve_date_text(cfg_custom_auto_time), "'93 05 10 18:30")
 
-        # current_date
-        cfg_current = DateStampConfig(date_mode="current_date", date_format="'YY MM DD", show_time=True)
-        text_current = resolve_date_text(cfg_current)
-        now_yy = f"{datetime.datetime.now().year % 100:02d}"
-        self.assertTrue(text_current.startswith(f"'{now_yy}"))
-        self.assertRegex(text_current, r"\d{2}:\d{2}$")
+        # 4. auto / today (現在日時の自動生成)
+        for kw in ("auto", "today", "now"):
+            cfg_auto = DateStampConfig(date_string=kw, date_format="'YY MM DD", show_time=True)
+            text_auto = resolve_date_text(cfg_auto)
+            now_yy = f"{datetime.datetime.now().year % 100:02d}"
+            self.assertTrue(text_auto.startswith(f"'{now_yy}"))
+            self.assertRegex(text_auto, r"\d{2}:\d{2}$")
 
-        # random_vintage (seed指定で再現性確認)
-        cfg_random = DateStampConfig(date_mode="random_vintage", date_format="'YY MM DD", show_time=True)
+        # 5. random (seed指定で再現性確認)
+        cfg_random = DateStampConfig(date_string="random", date_format="'YY MM DD", show_time=True)
         text_r1 = resolve_date_text(cfg_random, seed=42)
         text_r2 = resolve_date_text(cfg_random, seed=42)
         self.assertEqual(text_r1, text_r2)
@@ -154,11 +164,22 @@ class TestFilmStamp(unittest.TestCase):
         self.assertGreater(result.max(), 0.0)
         self.assertLessEqual(result.max(), 1.0)
 
+    def test_numpy_non_destructive(self):
+        """入力 NumPy 配列がインプレースで書き換えられないことの検証"""
+        orig = np.zeros((200, 200, 3), dtype=np.float32)
+        orig_copy = orig.copy()
+        result = render_film_date_stamp(orig, date_string="'98 12 24")
+        # 元の配列が 0.0 のまま維持されていること
+        self.assertEqual(float(orig.max()), 0.0)
+        np.testing.assert_array_equal(orig, orig_copy)
+        # 戻り値はスタンプが押されていること
+        self.assertGreater(float(result.max()), 0.0)
+
     def test_optical_burn_highlight_saturation(self):
-        """白背景（高輝度）での自然な埋もれ再現"""
+        """白背景（高輝度）での自然な埋もれ再現（常時光学モデル）"""
         # 真っ白な背景 (1.0, 1.0, 1.0)
         white_bg = np.ones((300, 400, 3), dtype=np.float32)
-        res_burn = render_film_date_stamp(white_bg, optical_burn=True, date_string="'98 12 24")
+        res_burn = render_film_date_stamp(white_bg, date_string="'98 12 24")
         
         # 白背景ではすでに飽和しているため、白飛び（1.0近傍）を保ち、過剰に破綻しない
         self.assertTrue(np.all(res_burn <= 1.0))
@@ -173,7 +194,8 @@ class TestFilmStamp(unittest.TestCase):
             self.assertEqual(res.size, (300, 300))
 
     def test_all_fonts_and_shear(self):
-        """サポートフォント全種での描画検証"""
+        """厳選サポートフォント（実機5種＋空想3種＝計8種）での描画検証"""
+        self.assertEqual(len(SUPPORTED_FONTS), 8)
         base = Image.new("RGB", (320, 240), (20, 20, 20))
         for font_type in SUPPORTED_FONTS:
             cfg = DateStampConfig(font_type=font_type)
@@ -181,15 +203,15 @@ class TestFilmStamp(unittest.TestCase):
             self.assertIsInstance(res, Image.Image)
 
     def test_font_size_normalization(self):
-        """異なるフォント間でも同一 font_size で視覚的なスタンプ幅が均一化されるか検証"""
+        """全厳選フォント8種間で同一 font_size で視覚的なスタンプ幅が均一化されるか検証"""
         widths = []
         for font_type in SUPPORTED_FONTS:
             font_path, shear = get_font_file_and_shear(font_type)
             _, tw, th = render_date_mask("'98 12 24", font_path, font_size=40, shear_deg=shear)
             widths.append(tw)
 
-        # 全フォントの描画幅の最大/最小比が 1.25 以内に収まっていること（正規化前は 1.75 倍以上の差があった）
         ratio = max(widths) / max(1, min(widths))
+        # 全8種（実機スリム7セグから超ワイド幾何学・カリグラフィまで）の最大/最小幅比率が25%以内に収まること
         self.assertLessEqual(ratio, 1.25)
 
     def test_strict_7seg_fonts_geometry_and_glyphs(self):
@@ -317,7 +339,6 @@ class TestFilmStamp(unittest.TestCase):
         self.assertEqual(w1, 240)
         self.assertEqual(h1, 720)
         self.assertEqual(g1.numberOfContours, 1)
-        # 頂点 (Y=720) から左下へ突き出すカギ鼻先端 (xMin=166) がメインステム左辺 (X=310) より左に大きく突出していること
         self.assertLess(g1.xMin, 220)
         self.assertEqual(g1.xMax, 406)
 
@@ -334,20 +355,17 @@ class TestComfyUINode(unittest.TestCase):
         outputs = node.apply_stamp(
             image=input_tensor,
             style_preset="Japanese Snap (Disposable)",
-            font_type="VT323 (Dot Matrix)",
+            font_type="FDS_Dot_Strict (90s Dot Matrix)",
             preset_color="Fuji Orange",
             exposure_intensity=1.0,
             core_glow=0.5,
             halation=1.0,
-            optical_burn=True,
-            date_mode="current_date",
-            date_string="'98 12 24",
+            date_string="auto",
             date_format="'YY MM DD",
             show_time=True,
             position="bottom_right",
             font_scale=1.2,
-            margin_x=1.5,
-            margin_y=1.5,
+            margin=1.5,
             seed=123,
         )
 
@@ -373,25 +391,20 @@ class TestComfyUINode(unittest.TestCase):
         node = FilmDateStamp()
         input_tensor = torch.zeros((1, 128, 128, 3), dtype=torch.float32)
 
-        # プリセットは Japanese Tokyo 90s (デフォルト bottom_right) だが、
-        # ウィジェット引数として position="top_left" が指定されている場合、top_left に描画される
         outputs = node.apply_stamp(
             image=input_tensor,
             style_preset="Japanese Tokyo 90s",
-            font_type="DSEG7_Italic (7-Segment)",
+            font_type="FDS7_Strict_Compact (80s -7°)",
             preset_color="Amber Classic",
             exposure_intensity=1.0,
             core_glow=1.0,
             halation=1.0,
-            optical_burn=True,
-            date_mode="custom",
             date_string="88 88 88",
             date_format="'YY MM DD",
             show_time=False,
             position="top_left",
             font_scale=1.0,
-            margin_x=1.0,
-            margin_y=1.0,
+            margin=1.0,
             seed=42,
         )
         self.assertEqual(len(outputs), 3)
@@ -409,20 +422,17 @@ class TestComfyUINode(unittest.TestCase):
         node = FilmDateStamp()
         base_kwargs = dict(
             style_preset="Custom",
-            font_type="DSEG7_Classic (7-Segment)",
+            font_type="FDS7_Strict_Compact (80s -7°)",
             preset_color="Amber Classic",
             exposure_intensity=1.0,
             core_glow=1.0,
             halation=1.0,
-            optical_burn=True,
-            date_mode="custom",
             date_string="'98 12 24",
             date_format="'YY MM DD",
             show_time=False,
             position="bottom_right",
             font_scale=1.0,
-            margin_x=1.0,
-            margin_y=1.0,
+            margin=1.0,
             seed=0,
         )
         # 1. RGBA (4ch)
@@ -443,30 +453,26 @@ class TestComfyUINode(unittest.TestCase):
     def test_hdr_overshoot_not_darkened(self):
         """1.01 を超える float 画像で、画像全体が誤って /255 されて暗転しないことの検証"""
         node = FilmDateStamp()
-        # 背景を 0.5 で埋め、1画素だけ 1.05 にする
         img = torch.full((1, 128, 128, 3), 0.5, dtype=torch.float32)
         img[0, 0, 0, 0] = 1.05
 
         out = node.apply_stamp(
             image=img,
             style_preset="Custom",
-            font_type="DSEG7_Classic (7-Segment)",
+            font_type="FDS7_Strict_Compact (80s -7°)",
             preset_color="Amber Classic",
             exposure_intensity=1.0,
             core_glow=1.0,
             halation=1.0,
-            optical_burn=True,
-            date_mode="custom",
             date_string="'98 12 24",
             date_format="'YY MM DD",
             show_time=False,
             position="bottom_right",
             font_scale=1.0,
-            margin_x=1.0,
-            margin_y=1.0,
+            margin=1.0,
             seed=0,
         )[0]
-        # 背景（スタンプの影響のない左上）が ~0.5 を維持していること（誤って 0.002 に暗転していないこと）
+        # 背景（スタンプの影響のない左上）が ~0.5 を維持していること
         self.assertAlmostEqual(out[0, 10, 10, 0].item(), 0.5, places=2)
 
     def test_multiline_and_special_chars_sanitized(self):
@@ -476,35 +482,33 @@ class TestComfyUINode(unittest.TestCase):
         out = node.apply_stamp(
             image=img,
             style_preset="Custom",
-            font_type="DSEG7_Classic (7-Segment)",
+            font_type="FDS7_Strict_Compact (80s -7°)",
             preset_color="Amber Classic",
             exposure_intensity=1.0,
             core_glow=1.0,
             halation=1.0,
-            optical_burn=True,
-            date_mode="custom",
             date_string="'98\n12\t24",
             date_format="'YY MM DD",
             show_time=False,
             position="bottom_right",
             font_scale=1.0,
-            margin_x=1.0,
-            margin_y=1.0,
+            margin=1.0,
             seed=0,
         )[0]
         self.assertGreater(out.max().item(), 0.0)
 
-    def test_is_changed_current_date(self):
-        """date_mode == 'current_date' で再評価を促すため NaN が返ることの検証"""
-        val_curr = FilmDateStamp.IS_CHANGED(torch.zeros((1, 1, 1, 3)), date_mode="current_date")
-        self.assertTrue(math.isnan(val_curr))
+    def test_is_changed_auto_date(self):
+        """date_string が 'auto' / 'today' / 'now' で再評価を促すため NaN が返ることの検証"""
+        for kw in ("auto", "today", "now", "AUTO"):
+            val_auto = FilmDateStamp.IS_CHANGED(torch.zeros((1, 1, 1, 3)), date_string=kw)
+            self.assertTrue(math.isnan(val_auto))
 
-        val_custom = FilmDateStamp.IS_CHANGED(torch.zeros((1, 1, 1, 3)), date_mode="custom")
-        self.assertEqual(val_custom, "")
+        val_fixed = FilmDateStamp.IS_CHANGED(torch.zeros((1, 1, 1, 3)), date_string="'98 12 24")
+        self.assertEqual(val_fixed, "")
 
     def test_js_and_python_presets_consistency(self):
         """web/js/film_date_stamp.js と film_config.py のプリセット定義が同期していることの検証"""
-        import re, os
+        import os
         js_path = os.path.join(os.path.dirname(__file__), "..", "web", "js", "film_date_stamp.js")
         with open(js_path, "r", encoding="utf-8") as f:
             js_content = f.read()
@@ -513,8 +517,7 @@ class TestComfyUINode(unittest.TestCase):
             if preset_name == "Custom" or preset_dict is None:
                 continue
             self.assertIn(f'"{preset_name}"', js_content, f"Preset '{preset_name}' is missing in film_date_stamp.js")
-            # 主要なキーが JS に含まれているかチェック
-            for key in ("date_mode", "date_format", "font_type", "preset_color", "position"):
+            for key in ("date_string", "date_format", "font_type", "preset_color", "position"):
                 expected_val = preset_dict[key]
                 self.assertIn(f'"{expected_val}"', js_content, f"Value '{expected_val}' for key '{key}' in preset '{preset_name}' missing in JS")
 
@@ -547,20 +550,17 @@ class TestComfyUINode(unittest.TestCase):
         out_img, out_mask, out_text = node.apply_stamp(
             image=img,
             style_preset="Custom",
-            font_type="DSEG7_Classic (7-Segment)",
+            font_type="FDS7_Strict_Compact (80s -7°)",
             preset_color="Amber Classic",
             exposure_intensity=1.0,
             core_glow=1.0,
             halation=1.0,
-            optical_burn=True,
-            date_mode="random_vintage",
-            date_string="",
+            date_string="random",
             date_format="'YY MM DD",
             show_time=True,
             position="bottom_right",
             font_scale=1.0,
-            margin_x=1.0,
-            margin_y=1.0,
+            margin=1.0,
             seed=777,
         )
 

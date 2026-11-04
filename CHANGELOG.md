@@ -4,6 +4,138 @@
 
 ---
 
+## [2.4.2] - 2026-11-04 (Preset Margin Optimization from Real-world Photo Verification)
+
+### Changed & Improved
+- **主要6プリセットの初期マージンを `1.15` に最適化改定**:
+  - 実写写真（昭和の街角スナップ写真、2560×1774 / 1774×2560）による実機検証に基づき、端に近すぎず適度なゆとりを持たせたバランス（短辺の約 5.75% / 4.6% 余白）へ初期配置を改定。
+  - 改定対象プリセット:
+    - `Japanese Tokyo 90s` (`margin`: 1.00 → **1.15**)
+    - `American West Coast` (`margin`: 1.00 → **1.15**)
+    - `American 80s (Red Quartz)` (`margin`: 1.00 → **1.15**)
+    - `European Classic (Paris/Berlin)` (`margin`: 1.10 → **1.15**)
+    - `Monochrome 70s (Canodate E)` (`margin`: 1.00 → **1.15**)
+    - `Vintage 70s Color (Datematic)` (`margin`: 1.00 → **1.15**)
+  - Python設定層（`film_config.py`）およびフロントエンドUI連動層（`web/js/film_date_stamp.js`）の両方を完全同期更新。
+- **検証環境・レポートツールの追加**:
+  - 実写画像に対する感度比較スクリプト `scripts/test_showa_oji_stamps.py` を整備。
+  - 全12プリセット・マージン感度（0.70〜1.50）・フォントサイズ感度（0.80〜1.30）をブラウザでインタラクティブに比較可能な HTML ビューアを生成。
+
+---
+
+## [2.4.1] - 2026-11-04 (Font Scale Modernization & Visual Normalization Finalization)
+
+### Changed & Improved
+- **基準フォントサイズの現代的スケールへの底上げ（+25% アップグレード）**:
+  - 現代のディスプレイ、SNSタイムライン（X/Instagram）、スマートフォン表示における視認性と写真全体のバランスを追求し、`film_stamp.py` の基本フォントサイズ算出係数を `0.032`（短辺の3.2%）から **`0.040`（短辺の4.0%）** へ +25% 改定。
+  - 1024×1024 画像における文字の Cap Height（数字の高さ）が約 20px → **約 25〜26px** へ拡大され、写真の引き（Full View）でも日付が明瞭に判読可能に。
+  - 光学コアグローや H&D 分光感光飽和（赤→橙→黄→白のブリーチグラデーション）の階調感がよりリッチに目視可能に。
+  - コア係数の底上げにより、各プリセット間の相対スケール（写ルンですの `font_scale=1.20`、欧州クラシックの `font_scale=0.95` 等）の世界観バランスを完全保持。
+- **全厳選フォント8種に対する視覚サイズ自動正規化（Visual Size Normalization）の完全検証**:
+  - 実機スリム7セグから超ワイド幾何学（Michroma）、カリグラフィ（EagleLake）に至る全8フォントにおいて、最大/最小の描画文字幅比率が **わずか 1.23倍（24%以内）** に収まることを単体テストで厳密に検証・保証。
+
+---
+
+## [2.4.0] - 2026-11-04 (Workspace Optimization, Refactoring & Global Localization)
+
+### Documentation & Internationalization
+- **英語プライマリ化と多言語ドキュメント整備**:
+  - グローバル公開・Comfy Registry / ComfyUI-Manager 登録基準に準拠し、ルートの `README.md` を洗練された英語ドキュメントに刷新。
+  - 日本語ドキュメントを `README_ja.md` として分離・保持し、両ドキュメント冒頭に双方向リンク（`[English](README.md) | [日本語](README_ja.md)`）を設置。
+  - `workflows/film_date_stamp_workflow.json` の Note ノード（解説テキスト）を英語化し、海外ユーザーが即座に理解・試用できる環境を整備。
+  - `nodes.py` のモジュールおよびクラス Docstring を英語化。
+
+### Optimized & Performance
+- **リポジトリ・配布サイズの大幅軽量化 (約 28 MB → 約 1.5 MB 以下, 94% 削減)**:
+  - `MochiyPopOne-Regular.ttf` を日付スタンプ用文字（ASCII印字可能文字＋基本約物）にサブセット化（5.16 MB → 19.5 KB、99.6% 削減）。
+  - 開発中の一時試用フォント（`tests/temp_fonts/` 計 7.51 MB）およびワンオフ比較スクリプト・試作画像（計 16.5 MB）を安全にクリーンアップ。
+- **光学露光エンジンの FFT 周波数領域統合**:
+  - `film_stamp.py` の多重ハレーション散乱（`psf_mid`, `psf_wide`, `psf_veil`）を周波数領域（FFT空間）で1つの伝達関数に合成してから逆変換するよう最適化。
+  - 2D RFFT / IRFFT の呼び出し回数を削減し、未キャッシュ時のレンダリング時間を約 15% 高速化（57ms → 48ms、キャッシュ時は約 8ms）。
+- **入力 NumPy 配列の非破壊性（In-place 変更防止）の完全保証**:
+  - `render_film_date_stamp` において入力画像配列（`np.float32`）のビュー直接書き込みを防止するため、描画矩形を明示的にコピーして保護。
+
+### Refactored & Fixed
+- **デッドコード・旧互換残骸のクリーンアップ**:
+  - `get_font_file_and_shear` から削除済み旧フォント（`FDS7Classic`, `DSEG7`, `DSEG14`）への不要な探索コードを削除し、実在する `FDS7Strict-Compact.ttf` に統一。
+  - `film_config.py` に `SUPPORTED_COLORS` を定義し、カラーパレットと分光特性の整合性を担保。
+- **ライセンスおよびメタデータの完全整合**:
+  - `fonts/LICENSE-OFL.txt` を現在収録されている全8フォント（自社製4種 ＋ OFL 4種: `Share Tech Mono`, `Michroma`, `Mochiy Pop One`, `Eagle Lake`）の正確な著作権・クレジット表記に全面改訂。
+  - `__init__.py`, `pyproject.toml`, `CHANGELOG.md` のバージョン番号を `2.4.0` に統一。
+  - `.gitignore` にビルド・一時ディレクトリ定義を追加。
+
+---
+
+## [2.3.1] - 2026-11-04 (Preset Refinement & Hong Kong Neon Deprecation)
+
+### Removed
+- **`Hong Kong Neon (90s Cinema)` プリセットの廃止**:
+  - 1990年代の香港映画的心象風景（『恋する惑星』オマージュ）として設けていたプリセットを整理・削除。
+  - 実際の中国・香港のカメラ事情（海鴎 DF-300AD、鳳凰 DC303KD等の石英日期后背は全て赤色・アンバーLED）を精査した結果、実機系プリセットとしての歴史的整合性、および「Custom」で自由に再現可能な点（`Cyber Green` パレットは存続）を踏まえてプリセット一覧から除外。
+  - スタイルプリセット総数を全12種（実機9種 ＋ 空想3種 ＋ Custom）に整理。
+
+---
+
+## [2.3.0] - 2026-11-04 (Speculative & Fiction Stamp Expansion)
+
+### Added
+- **空想・シミュレーティブ（Fiction / Speculative）3大スタイルの新設**:
+  - 実機エミュレートの枠を超え、コア光学感光エンジン（`optical_burn`）を活かした「あり得たかもしれない異世界の光学的日付焼き付け」を3系統新設。
+  - **1. サイバー枠 (`Cyber Telemetry (80s Sci-Fi)`)**:
+    - フォント: `Michroma (Cyber Telemetry)`（80s-90s宇宙探査機・SF映画調テレメトリ・超ワイド幾何学・OFL準拠）。
+    - カラー: `Cyber Green`。
+    - 特徴: 高輝度レーザー露光・鋭い回折光。秒付き高密度HUD（`'98 12 24 23:59:59`）に対応。
+  - **2. Kawaii / Y2K枠 (`Y2K Pop (Heisei Fancy)`)**:
+    - フォント: `MochiyPopOne (Y2K Pop)`（平成レトロ・お餅のように角が丸く膨らんだ極太丸文字・OFL準拠）。
+    - カラー: `Neo Pink`（マゼンタ露光 / 広角Mie散乱）。
+    - 特徴: 平成初期に限定発売されたファンシーカメラやプリクラ機の電飾露光をシミュレート。
+  - **3. ファンタジー / 魔導枠 (`Arcane Occult (Crimson Script)`)**:
+    - フォント: `EagleLake (Arcane Script)`（ケルト・古文書風のインク筆記体・OFL準拠）。
+    - カラー: `Crimson Red`（血やインクがフィルムに直接染み込んだかのような深紅）。
+    - 特徴: 錬金術師の野帳、禁断の魔導書、SCP極秘記録の禍々しい手書き呪印刻印。
+- **新カラープリセット ＆ 物理分光特性**:
+  - `Neo Pink`: マゼンタ主発光（`#FF50B4`）と甘く広がるMie散乱光。
+  - `Crimson Red`: 血の深紅主発光（`#EB1923`）とタイトなハレーション。
+- **日付パーサーの秒単位認識対応**:
+  - `resolve_date_text` の正規表現を拡張（`\d{1,2}:\d{2}(?::\d{2})?`）し、サイバーHUD等で一般的な秒付きタイムスタンプ（`23:59:59`）の直接入力をサポート。
+
+### Changed
+- **フォント総数拡張**: 厳選5種（実機再現） → 全8種（実機再現5種 ＋ 空想3種）。
+- **スタイル一括プリセット総数拡張**: 10種 → 全13種（実機10種 ＋ 空想3種 ＋ Custom）。
+- **Web UI同期**: `web/js/film_date_stamp.js` に3種の新スタイルプリセットを追加。
+
+---
+
+## [2.2.0] - 2026-11-04 (Pre-release Refactoring & Clean-up)
+
+### Removed / Deprecated (未公開前クリーンアップ＆後方互換性の完全切断)
+- **旧世代フォントの完全切断 (11種 → 厳選5種へ集約)**:
+  - 自社製 Strict フォント完成により下位互換となった `FDS7Classic-Bold.ttf`, `FDS7Classic-BoldItalic.ttf`, `FDS14Classic-Bold.ttf`, `FDS14Classic-BoldItalic.ttf`, `VT323-Regular.ttf`, `Silkscreen-Regular.ttf` の計6フォントファイルを完全削除。
+  - 残存フォントを自社製実機仕様4種（`FDSMechanical70s`, `FDS7Strict-Compact`, `FDS7Strict-SLR`, `FDSDotStrict`）＋ 液晶等幅（`ShareTechMono`）の5種に厳選。
+  - 旧フォントパッチ用スクリプト（`scripts/patch_dseg7.py`）を削除。
+- **不要パラメータの廃止・統合**:
+  - `optical_burn`（True/False）を廃止: 常に物理感光露光モデル（リニア乳剤余力＋フィルム肩特性）を実行。
+  - `margin_x` / `margin_y` を単一の `margin` に一本化: フィルムマージンの等方スケーリングに対応。
+  - `DateStampConfig` の未使用フィールド（`custom_color_hex`, `italic_angle` 等）を完全削除。
+  - `format_datetime` の過去互換用 `'YY MM DD HH:MM` 分岐を削除。
+  - Web UI（`web/js/film_date_stamp.js`）内の旧ワークフロー用ズレ修復ハック（`repairShiftedWidgets`）を削除。
+
+### Changed
+- **日付入力インターフェースの一本化 (`date_string`)**:
+  - `date_mode`（custom / current_date / random_vintage）ウィジェットを完全廃止。
+  - `date_string` にそのまま文字を入力すれば直接スタンプ（例: `'98 12 24'`）。
+  - `"auto"` または `"today"` と入力すれば現在日時の自動生成（`IS_CHANGED` で NaN を返し動的更新）。
+  - `"random"` と入力すれば1985〜2005年のヴィンテージランダム日時の自動生成（`seed` による再現性対応）。
+- **カラープリセットの整理**:
+  - `Bulb Amber` を削除（`Amber Classic` と統合）。
+  - `Cyber Green` をドロップダウン選択肢の最後尾に配置（特殊用途・飛び道具カラーの明確化）。
+- **公式ワークフローおよびドキュメントの刷新**:
+  - 公式ワークフロー JSON（`workflows/film_date_stamp_workflow.json`）の `widgets_values` を新仕様（14ウィジェット）に同期。
+  - `SPEC.md`, `AGENTS.md`, `README.md` から後方互換防衛ルールを撤廃し、v1.0.0 正式公開仕様に刷新。
+  - 全単体テスト（22件）を新シグネチャに完全対応させ、全件PASSを確認。
+
+---
+
 ## [2.1.0] - 2026-11-04
 
 ### Added

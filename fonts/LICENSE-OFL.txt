@@ -4,20 +4,25 @@ This directory contains font software licensed under the SIL Open Font License, 
 Copyright Notices & Font Attribution
 ======================================================================
 
-1. DSEG (7-Segment & 14-Segment LED Font Families)
-   - Copyright (c) 2017, keshikan (http://www.keshikan.net), with Reserved Font Name "DSEG".
-   - Note on Modified Fonts:
-     The 7-segment / 14-segment fonts bundled in this distribution have been modified (e.g. customized apostrophe metrics)
-     and renamed to avoid infringement of the Reserved Font Name "DSEG" in compliance with SIL OFL 1.1 Section 3.
+1. FDS Font Families (Original Generative Vector TrueType)
+   - FDSMechanical70s-Regular.ttf
+   - FDS7Strict-Compact.ttf
+   - FDS7Strict-SLR.ttf
+   - FDSDotStrict-Regular.ttf
+   - Copyright (c) 2026, FilmDateStamp Authors. Released under the SIL Open Font License, Version 1.1.
 
-2. VT323
-   - Copyright (c) 2011, Peter Hull (petehull@pobox.com), with Reserved Font Name "VT323".
+2. Share Tech Mono
+   - Copyright (c) 2012, Carrois Type Design, Ralph du Carrois (post@carrois.com www.carrois.com), with Reserved Font Name 'Share'.
 
-3. Silkscreen
-   - Copyright (c) 2001-2022, Jason Kottke (jason@kottke.org).
+3. Michroma
+   - Copyright 2011 The Michroma Project Authors (https://github.com/googlefonts/Michroma-font).
 
-4. Share Tech Mono
-   - Copyright (c) 2012, Carrois Corporate GbR (post@carrois.com), with Reserved Font Name "Share".
+4. Mochiy Pop One (Subsetted)
+   - Copyright 2020 The MochiyPop Project Authors (https://github.com/fontdasu/Mochiypop).
+   - Note: Subsetted to ASCII/punctuation characters for packaging optimization in compliance with OFL 1.1.
+
+5. Eagle Lake
+   - Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com), with Reserved Font Name "Eagle Lake".
 
 ======================================================================
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

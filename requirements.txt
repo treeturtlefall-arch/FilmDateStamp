@@ -1,4 +1,4 @@
 numpy>=1.20.0
 Pillow>=9.0.0
 torch
-# fonttools>=4.0.0  # Optional: only needed when running scripts/patch_dseg7.py
+# fonttools>=4.0.0  # Optional: only needed when running font build scripts

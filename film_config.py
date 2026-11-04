@@ -1,13 +1,14 @@
 """
 FilmDateStamp - 設定データクラス・カラープリセット・日付パーサー
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import datetime
 import random
 import re
 from typing import Dict, Tuple, Optional
 
 # プリセットカラーパレット定義 (Core, Body, Halation)
+# ※ Cyber Green は飛び道具・特殊用途としての位置づけを明確にするため末尾に配置
 COLOR_PRESETS: Dict[str, Dict[str, Tuple[int, int, int]]] = {
     "Amber Classic": {
         "core": (255, 255, 210),
@@ -29,25 +30,31 @@ COLOR_PRESETS: Dict[str, Dict[str, Tuple[int, int, int]]] = {
         "body": (255, 185, 30),
         "halation": (240, 110, 0),
     },
-    "Cyber Green": {
-        "core": (230, 255, 230),
-        "body": (40, 255, 80),
-        "halation": (0, 180, 40),
+    "Bulb Warm Ivory": {
+        "core": (255, 250, 232),
+        "body": (255, 242, 204),
+        "halation": (255, 214, 138),
     },
     "Paper White (Monochrome)": {
         "core": (248, 246, 240),
         "body": (245, 242, 234),
         "halation": (235, 232, 224),
     },
-    "Bulb Warm Ivory": {
-        "core": (255, 250, 232),
-        "body": (255, 242, 204),
-        "halation": (255, 214, 138),
+    # 特殊・空想（Fiction / Speculative）カラーパレット
+    "Cyber Green": {
+        "core": (230, 255, 230),
+        "body": (40, 255, 80),
+        "halation": (0, 180, 40),
     },
-    "Bulb Amber": {
-        "core": (255, 246, 218),
-        "body": (255, 210, 128),
-        "halation": (255, 160, 64),
+    "Neo Pink": {
+        "core": (255, 235, 248),
+        "body": (255, 70, 170),
+        "halation": (230, 25, 115),
+    },
+    "Crimson Red": {
+        "core": (255, 235, 225),
+        "body": (235, 25, 35),
+        "halation": (185, 5, 15),
     },
 }
 
@@ -76,25 +83,31 @@ PHYSICAL_SPECTRA: Dict[str, Dict[str, Tuple[float, float, float]]] = {
         "scatter": (1.00, 0.45, 0.04),
         "tint": (1.00, 0.99, 0.90),
     },
-    "Cyber Green": {
-        "sens": (0.32, 3.20, 0.65),
-        "scatter": (0.05, 1.00, 0.22),
-        "tint": (0.90, 1.00, 0.92),
+    "Bulb Warm Ivory": {
+        "sens": (3.20, 2.65, 1.38),
+        "scatter": (1.00, 0.72, 0.26),
+        "tint": (1.00, 0.949, 0.800),
     },
     "Paper White (Monochrome)": {
         "sens": (2.90, 2.86, 2.75),
         "scatter": (0.85, 0.84, 0.80),
         "tint": (0.973, 0.965, 0.941),
     },
-    "Bulb Warm Ivory": {
-        "sens": (3.20, 2.65, 1.38),
-        "scatter": (1.00, 0.72, 0.26),
-        "tint": (1.00, 0.949, 0.800),
+    # 特殊・空想分光特性
+    "Cyber Green": {
+        "sens": (0.32, 3.20, 0.65),
+        "scatter": (0.05, 1.00, 0.22),
+        "tint": (0.90, 1.00, 0.92),
     },
-    "Bulb Amber": {
-        "sens": (3.30, 1.95, 0.65),
-        "scatter": (1.00, 0.52, 0.08),
-        "tint": (1.00, 0.92, 0.75),
+    "Neo Pink": {
+        "sens": (3.00, 0.40, 2.40),
+        "scatter": (1.00, 0.15, 0.65),
+        "tint": (1.00, 0.90, 0.98),
+    },
+    "Crimson Red": {
+        "sens": (3.60, 0.25, 0.18),
+        "scatter": (1.00, 0.06, 0.01),
+        "tint": (1.00, 0.88, 0.85),
     },
 }
 
@@ -116,29 +129,28 @@ SUPPORTED_POSITIONS = [
     "top_left",
 ]
 
-# 利用可能フォント定義 (フォントファイル名, シアー傾斜角度)
-# SIL OFL 1.1 Section 3 (Reserved Font Name) に準拠した派生フォント名を指定
+# 厳選フォント定義 (フォントファイル名, シアー傾斜角度)
+# 自社製実機仕様4種 ＋ 液晶等幅1種 ＋ 空想・シミュレーティブ3種
 FONT_MAP: Dict[str, Tuple[str, float]] = {
-    "FDS_Mechanical_70s (70s Mechanical)": ("FDSMechanical70s-Regular.ttf", 0.0),
+    # 実機エミュレート
     "FDS7_Strict_Compact (80s -7°)": ("FDS7Strict-Compact.ttf", 0.0),
     "FDS7_Strict_SLR (80s 0°)": ("FDS7Strict-SLR.ttf", 0.0),
     "FDS_Dot_Strict (90s Dot Matrix)": ("FDSDotStrict-Regular.ttf", 0.0),
-    "DSEG7_Classic (7-Segment)": ("FDS7Classic-Bold.ttf", 0.0),
-    "DSEG7_Italic (7-Segment)": ("FDS7Classic-BoldItalic.ttf", 0.0),
-    "DSEG14_Classic (14-Segment)": ("FDS14Classic-Bold.ttf", 0.0),
-    "DSEG14_Italic (14-Segment)": ("FDS14Classic-BoldItalic.ttf", 0.0),
-    "VT323 (Dot Matrix)": ("VT323-Regular.ttf", 0.0),
-    "Silkscreen (Fine Dot)": ("Silkscreen-Regular.ttf", 0.0),
+    "FDS_Mechanical_70s (70s Mechanical)": ("FDSMechanical70s-Regular.ttf", 0.0),
     "ShareTechMono (LCD Digital)": ("ShareTechMono-Regular.ttf", 0.0),
+    # 空想・シミュレーティブ（Fiction / Speculative）
+    "Michroma (Cyber Telemetry)": ("Michroma-Regular.ttf", 0.0),
+    "MochiyPopOne (Y2K Pop)": ("MochiyPopOne-Regular.ttf", 0.0),
+    "EagleLake (Arcane Script)": ("EagleLake-Regular.ttf", 0.0),
 }
 
 SUPPORTED_FONTS = list(FONT_MAP.keys())
+SUPPORTED_COLORS = list(PHYSICAL_SPECTRA.keys())
 
 # スタイル一括プリセット定義（地域・時代・文化ベース）
 STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
     "Custom": None,
     "Japanese Tokyo 90s": {
-        "date_mode": "custom",
         "date_string": "'98 12 24",
         "date_format": "'YY MM DD",
         "show_time": False,
@@ -147,14 +159,11 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.00,
         "core_glow": 1.00,
         "halation": 1.00,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.00,
-        "margin_x": 1.00,
-        "margin_y": 1.00,
+        "margin": 1.15,
     },
     "Japanese Snap (Disposable)": {
-        "date_mode": "custom",
         "date_string": "'98 12 24 18:30",
         "date_format": "'YY MM DD",
         "show_time": True,
@@ -163,14 +172,11 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.00,
         "core_glow": 0.50,
         "halation": 1.00,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.20,
-        "margin_x": 1.50,
-        "margin_y": 1.50,
+        "margin": 1.50,
     },
     "American West Coast": {
-        "date_mode": "custom",
         "date_string": "12 24 '98",
         "date_format": "MM DD 'YY",
         "show_time": False,
@@ -179,14 +185,11 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.00,
         "core_glow": 0.85,
         "halation": 1.00,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.00,
-        "margin_x": 1.00,
-        "margin_y": 1.00,
+        "margin": 1.15,
     },
     "American 80s (Red Quartz)": {
-        "date_mode": "custom",
         "date_string": "12 24 '88",
         "date_format": "MM DD 'YY",
         "show_time": False,
@@ -195,14 +198,11 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.10,
         "core_glow": 1.00,
         "halation": 1.30,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.00,
-        "margin_x": 1.00,
-        "margin_y": 1.00,
+        "margin": 1.15,
     },
     "European Classic (Paris/Berlin)": {
-        "date_mode": "custom",
         "date_string": "24.12.98",
         "date_format": "DD.MM.YY",
         "show_time": False,
@@ -211,30 +211,11 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 0.90,
         "core_glow": 0.70,
         "halation": 0.80,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 0.95,
-        "margin_x": 1.10,
-        "margin_y": 1.10,
-    },
-    "Hong Kong Neon (90s Cinema)": {
-        "date_mode": "custom",
-        "date_string": "'94 05 01",
-        "date_format": "'YY MM DD",
-        "show_time": False,
-        "font_type": "DSEG14_Italic (14-Segment)",
-        "preset_color": "Cyber Green",
-        "exposure_intensity": 1.20,
-        "core_glow": 1.10,
-        "halation": 1.60,
-        "optical_burn": True,
-        "position": "bottom_right",
-        "font_scale": 1.05,
-        "margin_x": 1.00,
-        "margin_y": 1.00,
+        "margin": 1.15,
     },
     "Y2K Digicam (Early 2000s)": {
-        "date_mode": "custom",
         "date_string": "'03 08 15 14:20",
         "date_format": "'YY MM DD",
         "show_time": True,
@@ -243,30 +224,24 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.05,
         "core_glow": 0.60,
         "halation": 0.90,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.15,
-        "margin_x": 1.40,
-        "margin_y": 1.40,
+        "margin": 1.40,
     },
     "Compact Fine Dot (Minimal)": {
-        "date_mode": "custom",
         "date_string": "'99 07 20 16:45",
         "date_format": "'YY MM DD",
         "show_time": True,
-        "font_type": "Silkscreen (Fine Dot)",
+        "font_type": "FDS_Dot_Strict (90s Dot Matrix)",
         "preset_color": "Fuji Orange",
         "exposure_intensity": 1.00,
         "core_glow": 0.40,
         "halation": 0.90,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.10,
-        "margin_x": 1.50,
-        "margin_y": 1.50,
+        "margin": 1.50,
     },
     "Monochrome 70s (Canodate E)": {
-        "date_mode": "custom",
         "date_string": "74 12 25",
         "date_format": "YY MM DD",
         "show_time": False,
@@ -275,14 +250,11 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.00,
         "core_glow": 0.50,
         "halation": 0.60,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.00,
-        "margin_x": 1.00,
-        "margin_y": 1.00,
+        "margin": 1.15,
     },
     "Vintage 70s Color (Datematic)": {
-        "date_mode": "custom",
         "date_string": "'74 12 25",
         "date_format": "'YY MM DD",
         "show_time": False,
@@ -291,11 +263,49 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "exposure_intensity": 1.05,
         "core_glow": 0.70,
         "halation": 0.85,
-        "optical_burn": True,
         "position": "bottom_right",
         "font_scale": 1.00,
-        "margin_x": 1.00,
-        "margin_y": 1.00,
+        "margin": 1.15,
+    },
+    # 空想・シミュレーティブ（Fiction / Speculative）プリセット
+    "Cyber Telemetry (80s Sci-Fi)": {
+        "date_string": "'98 12 24 23:59:59",
+        "date_format": "'YY MM DD",
+        "show_time": True,
+        "font_type": "Michroma (Cyber Telemetry)",
+        "preset_color": "Cyber Green",
+        "exposure_intensity": 1.35,
+        "core_glow": 1.20,
+        "halation": 1.45,
+        "position": "bottom_right",
+        "font_scale": 1.05,
+        "margin": 0.90,
+    },
+    "Y2K Pop (Heisei Fancy)": {
+        "date_string": "'98 12 24 18:30",
+        "date_format": "'YY MM DD",
+        "show_time": True,
+        "font_type": "MochiyPopOne (Y2K Pop)",
+        "preset_color": "Neo Pink",
+        "exposure_intensity": 1.05,
+        "core_glow": 0.50,
+        "halation": 0.75,
+        "position": "bottom_right",
+        "font_scale": 1.15,
+        "margin": 0.90,
+    },
+    "Arcane Occult (Crimson Script)": {
+        "date_string": "'98 12 24",
+        "date_format": "'YY MM DD",
+        "show_time": False,
+        "font_type": "EagleLake (Arcane Script)",
+        "preset_color": "Crimson Red",
+        "exposure_intensity": 1.05,
+        "core_glow": 0.40,
+        "halation": 0.60,
+        "position": "bottom_right",
+        "font_scale": 1.50,
+        "margin": 0.85,
     },
 }
 
@@ -304,24 +314,18 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
 class DateStampConfig:
     """フィルム日付スタンプの設定データクラス"""
     style_preset: str = "Custom"
-    date_mode: str = "custom"  # "custom", "current_date", "random_vintage"
     date_string: str = "'98 12 24"
     date_format: str = "'YY MM DD"
     show_time: bool = False
-    font_type: str = "DSEG7_Classic (7-Segment)"
+    font_type: str = "FDS7_Strict_Compact (80s -7°)"
     preset_color: str = "Amber Classic"
-    custom_color_hex: Optional[str] = None  # 将来用 or 任意指定
     exposure_intensity: float = 1.0
     core_glow: float = 1.0
     halation: float = 1.0
-    optical_burn: bool = True
     position: str = "bottom_right"
     font_scale: float = 1.0
-    margin_x: float = 1.0
-    margin_y: float = 1.0
-    italic_angle: float = 0.0  # DSEG7_Italic 等で適用する傾斜アフィン角度（約10〜12度）
+    margin: float = 1.0
     irregularity: float = 1.0  # 有機的ゆらぎ強度 (0.0=均一, 1.0=実機相当, 2.0=誇張)
-    grain: float = 1.0         # 乳剤マイクログレイン強度
 
     def apply_style_preset_if_set(self):
         """style_preset が選択されている場合、対応するパラメータを適用"""
@@ -364,11 +368,7 @@ def format_datetime(dt: datetime.datetime, format_str: str, show_time: bool = Fa
         base = f"{yyyy} {mm} {dd}"
     elif format_str == "YYYY-MM-DD":
         base = f"{yyyy}-{mm}-{dd}"
-    elif format_str == "'YY MM DD HH:MM":
-        # 過去互換
-        return f"'{yy} {mm} {dd} {hh}:{minute}"
     else:
-        # デフォルトは 'YY MM DD
         base = f"'{yy} {mm} {dd}"
 
     if show_time:
@@ -376,60 +376,60 @@ def format_datetime(dt: datetime.datetime, format_str: str, show_time: bool = Fa
     return base
 
 
-def generate_random_vintage_datetime(start_year: int = 1985, end_year: int = 2005) -> datetime.datetime:
+def generate_random_vintage_datetime(
+    start_year: int = 1985,
+    end_year: int = 2005,
+    seed: Optional[int] = None,
+) -> datetime.datetime:
     """1985〜2005年のランダムな日時を生成"""
     start_dt = datetime.datetime(start_year, 1, 1, 0, 0, 0)
     end_dt = datetime.datetime(end_year, 12, 31, 23, 59, 59)
     total_seconds = int((end_dt - start_dt).total_seconds())
-    random_sec = random.randint(0, total_seconds)
+
+    if seed is not None:
+        rng = random.Random(seed)
+        random_sec = rng.randint(0, total_seconds)
+    else:
+        random_sec = random.randint(0, total_seconds)
+
     return start_dt + datetime.timedelta(seconds=random_sec)
 
 
 def resolve_date_text(config: DateStampConfig, seed: Optional[int] = None) -> str:
     """
     設定に基づいて実際に描画する文字列を決定・解決する。
-    改行や制御文字は空白に正規化し、極端な長さは制限する。
+    - "auto", "today", "now": 現在日時の自動生成
+    - "random": ヴィンテージランダム日時の自動生成
+    - その他: ユーザー入力文字列（改行正規化、時刻トリム/補完適用）
     """
-    mode = config.date_mode.lower().strip()
-    
-    if mode == "custom":
-        raw_text = config.date_string if config.date_string is not None else "'98 12 24"
-        # 改行・タブなどの制御文字を空白に正規化し、連続空白を単一空白に縮約
-        text = re.sub(r'[\r\n\t]+', ' ', raw_text).strip()
-        if not text:
-            text = "'98 12 24"
-        # 最大64文字に制限（クラッシュ・メモリ暴走防止）
-        if len(text) > 64:
-            text = text[:64]
-        
-        # 末尾の時刻（例: ' 18:30', ' 09:15'）を検出
-        time_match = re.search(r'\s+(\d{1,2}:\d{2})$', text)
-        
-        if config.show_time:
-            if not time_match:
-                # show_time が True なのに時刻がない場合はデフォルト "18:30" を付加
-                text = f"{text} 18:30"
-        else:
-            if time_match:
-                # show_time が False なのに時刻が含まれている場合は除去
-                text = text[:time_match.start()]
-                
-        return text
-        
-    elif mode == "current_date":
+    raw_text = config.date_string if config.date_string is not None else "'98 12 24"
+    text_clean = re.sub(r'[\r\n\t]+', ' ', raw_text).strip()
+    key = text_clean.lower()
+
+    if key in ("auto", "today", "now"):
         now = datetime.datetime.now()
         return format_datetime(now, config.date_format, show_time=config.show_time)
-        
-    elif mode == "random_vintage":
-        if seed is not None:
-            # 再現性確保用のシード設定
-            rng_state = random.getstate()
-            random.seed(seed)
-            dt = generate_random_vintage_datetime()
-            random.setstate(rng_state)
-        else:
-            dt = generate_random_vintage_datetime()
+
+    if key == "random":
+        dt = generate_random_vintage_datetime(seed=seed)
         return format_datetime(dt, config.date_format, show_time=config.show_time)
-        
-    # フォールバック
-    return config.date_string if config.date_string else "'98 12 24"
+
+    # ユーザー指定の直接カスタム文字列
+    if not text_clean:
+        text_clean = "'98 12 24"
+    if len(text_clean) > 64:
+        text_clean = text_clean[:64]
+
+    # 末尾の時刻（例: ' 18:30', ' 09:15', ' 23:59:59'）を検出
+    time_match = re.search(r'\s+(\d{1,2}:\d{2}(?::\d{2})?)$', text_clean)
+
+    if config.show_time:
+        if not time_match:
+            # show_time が True なのに時刻がない場合はデフォルト "18:30" を付加
+            text_clean = f"{text_clean} 18:30"
+    else:
+        if time_match:
+            # show_time が False なのに時刻が含まれている場合は除去
+            text_clean = text_clean[:time_match.start()]
+
+    return text_clean

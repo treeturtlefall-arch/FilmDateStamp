@@ -6,3 +6,10 @@ __pycache__/
 Thumbs.db
 *.swp
 *.swo
+
+# Temporary tests and builds
+tests/temp_fonts/
+build/
+dist/
+*.egg-info/
+.venv/

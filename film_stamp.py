@@ -169,18 +169,13 @@ def get_font_file_and_shear(font_type: str) -> Tuple[str, float]:
     if font_type in FONT_MAP:
         filename, shear_deg = FONT_MAP[font_type]
     else:
-        filename, shear_deg = "FDS7Classic-Bold.ttf", 0.0
+        filename, shear_deg = "FDS7Strict-Compact.ttf", 0.0
 
     font_path = os.path.join(FONTS_DIR, filename)
     if not os.path.exists(font_path):
-        legacy_name = filename.replace("FDS7", "DSEG7").replace("FDS14", "DSEG14")
-        legacy_path = os.path.join(FONTS_DIR, legacy_name)
-        if os.path.exists(legacy_path):
-            font_path = legacy_path
-        else:
-            alt_path = os.path.join(MODULE_DIR, filename)
-            if os.path.exists(alt_path):
-                font_path = alt_path
+        alt_path = os.path.join(MODULE_DIR, filename)
+        if os.path.exists(alt_path):
+            font_path = alt_path
 
     return font_path, shear_deg
 
@@ -419,16 +414,41 @@ def generate_light_map_cached_v2(
     else:
         aniso, hal_angle, shift = 1.0, 0.0, (0.0, 0.0)
 
-    def halo_blur(sig: float, shift_scale: float) -> np.ndarray:
-        return fft_gaussian_blur(
-            source, sig * aniso, sig / aniso, hal_angle,
-            (shift[0] * shift_scale, shift[1] * shift_scale),
-        )
+    sig_mid = max(1.4, fs * 0.12 * math.sqrt(hal))
+    sig_wide = max(2.8, fs * 0.27 * hal)
+    sig_veil = max(5.5, fs * 0.58 * hal)
 
-    psf_mid = halo_blur(max(1.4, fs * 0.12 * math.sqrt(hal)), 0.4)
-    psf_wide = halo_blur(max(2.8, fs * 0.27 * hal), 1.0)
-    psf_veil = halo_blur(max(5.5, fs * 0.58 * hal), 1.8)
-    halo = (0.30 * psf_mid + 0.17 * psf_wide + 0.07 * psf_veil) * hal
+    # 3重ハレーション散乱（mid, wide, veil）を周波数領域（FFT空間）で1つの伝達関数に合成して高速化
+    smax_all = max(sig_mid * aniso, sig_wide * aniso, sig_veil * aniso)
+    sh_max = abs(shift[0] * 1.8) + abs(shift[1] * 1.8)
+    pad = int(math.ceil(3.5 * smax_all + sh_max)) + 2
+    padded_source = np.pad(source.astype(np.float32), pad, mode="constant")
+    ph, pw = padded_source.shape
+
+    fy = np.fft.fftfreq(ph).astype(np.float32)[:, None]
+    fx = np.fft.rfftfreq(pw).astype(np.float32)[None, :]
+    th = math.radians(hal_angle)
+    u = fx * math.cos(th) + fy * math.sin(th)
+    v = -fx * math.sin(th) + fy * math.cos(th)
+
+    def calc_halo_tf(sig: float, scale: float) -> np.ndarray:
+        s_maj = sig * aniso
+        s_min = sig / aniso
+        shx, shy = shift[0] * scale, shift[1] * scale
+        tf = np.exp(-2.0 * math.pi ** 2 * (s_maj ** 2 * u ** 2 + s_min ** 2 * v ** 2))
+        if shx != 0.0 or shy != 0.0:
+            tf = tf * np.exp(-2j * math.pi * (fx * shx + fy * shy))
+        return tf
+
+    tf_halo = (
+        0.30 * calc_halo_tf(sig_mid, 0.4)
+        + 0.17 * calc_halo_tf(sig_wide, 1.0)
+        + 0.07 * calc_halo_tf(sig_veil, 1.8)
+    ) * hal
+
+    f_source = np.fft.rfft2(padded_source)
+    out_halo = np.fft.irfft2(f_source * tf_halo, s=padded_source.shape)
+    halo = np.maximum(out_halo[pad:-pad, pad:-pad], 0.0).astype(np.float32)
 
     # ---- Step 4: ② Meso ゆらぎ ----
     if irr > 0:
@@ -522,12 +542,12 @@ def render_film_date_stamp(
             base_full = np.clip(np_input.astype(np.float32), 0.0, 1.0)
 
         if orig_channels == 4:
-            base_rgb = base_full[:, :, :3]
-            alpha_channel = base_full[:, :, 3:4]
+            base_rgb = base_full[:, :, :3].copy()
+            alpha_channel = base_full[:, :, 3:4].copy()
         elif orig_channels == 1:
-            base_rgb = np.repeat(base_full, 3, axis=2)
+            base_rgb = np.repeat(base_full, 3, axis=2).copy()
         else:
-            base_rgb = base_full[:, :, :3]
+            base_rgb = base_full[:, :, :3].copy()
 
         h, w = base_rgb.shape[:2]
     else:
@@ -542,10 +562,8 @@ def render_film_date_stamp(
 
     # 2. フォントとシアー設定
     font_path, shear_deg = get_font_file_and_shear(config.font_type)
-    if config.italic_angle > 0.0:
-        shear_deg = config.italic_angle
 
-    base_font_size = max(10, int(s * 0.032 * config.font_scale))
+    base_font_size = max(10, int(s * 0.040 * config.font_scale))
 
     # 3. v2 光学露光マップの取得 (リニア RGB [H, W, 3])
     eff_seed = seed if seed is not None else 0
@@ -559,15 +577,15 @@ def render_film_date_stamp(
         core_glow=round(float(config.core_glow), 3),
         halation=round(float(config.halation), 3),
         irregularity=round(float(config.irregularity), 2),
-        grain=round(float(config.grain), 2),
+        grain=1.0,
         seed=eff_seed,
     )
 
     stamp_h, stamp_w = light_lin.shape[:2]
 
-    # 4. 配置計算
-    margin_x_px = int(s * 0.05 * config.margin_x)
-    margin_y_px = int(s * 0.04 * config.margin_y)
+    # 4. 配置計算（単一マージンスケール）
+    margin_x_px = int(s * 0.05 * config.margin)
+    margin_y_px = int(s * 0.04 * config.margin)
 
     text_pos_x, text_pos_y = calculate_stamp_position(
         img_w=w,
@@ -598,29 +616,23 @@ def render_film_date_stamp(
         sub_base_srgb = base_rgb[dst_y1:dst_y2, dst_x1:dst_x2]
         sub_light_lin = light_lin[src_y1:src_y2, src_x1:src_x2]
 
-        if config.optical_burn:
-            # リニア空間での乳剤感光余力＋フィルム肩特性合成
-            sub_base_lin = srgb_to_linear(sub_base_srgb)
-            luma = (
-                0.2126 * sub_base_lin[..., 0:1]
-                + 0.7152 * sub_base_lin[..., 1:2]
-                + 0.0722 * sub_base_lin[..., 2:3]
-            )
-            # 背景が明るいほど乳剤の感光余力（headroom）が小さくなり、文字が溶け込んで埋もれる
-            headroom = np.clip(1.0 - np.power(luma, 1.35) * 0.72, 0.12, 1.0)
-            eff_light = sub_light_lin * headroom
+        # 5. リニア空間での乳剤感光余力＋フィルム肩特性合成 (Optical Burn-in)
+        sub_base_lin = srgb_to_linear(sub_base_srgb)
+        luma = (
+            0.2126 * sub_base_lin[..., 0:1]
+            + 0.7152 * sub_base_lin[..., 1:2]
+            + 0.0722 * sub_base_lin[..., 2:3]
+        )
+        # 背景が明るいほど乳剤の感光余力（headroom）が小さくなり、文字が溶け込んで埋もれる
+        headroom = np.clip(1.0 - np.power(luma, 1.35) * 0.72, 0.12, 1.0)
+        eff_light = sub_light_lin * headroom
 
-            raw_sum = sub_base_lin + eff_light * 1.18
-            compressed = 1.0 - np.exp(-raw_sum * 1.20) * (1.0 - sub_base_lin * np.exp(-eff_light * 2.0))
-            t = np.clip((raw_sum - 0.45) / 0.75, 0.0, 1.0)
-            combined_lin = np.clip(raw_sum * (1.0 - t) + compressed * t, 0.0, 1.0)
+        raw_sum = sub_base_lin + eff_light * 1.18
+        compressed = 1.0 - np.exp(-raw_sum * 1.20) * (1.0 - sub_base_lin * np.exp(-eff_light * 2.0))
+        t = np.clip((raw_sum - 0.45) / 0.75, 0.0, 1.0)
+        combined_lin = np.clip(raw_sum * (1.0 - t) + compressed * t, 0.0, 1.0)
 
-            base_rgb[dst_y1:dst_y2, dst_x1:dst_x2] = linear_to_srgb(combined_lin)
-        else:
-            # スクリーン合成 (sRGB)
-            sub_light_srgb = linear_to_srgb(sub_light_lin)
-            combined = 1.0 - (1.0 - sub_base_srgb) * (1.0 - np.clip(sub_light_srgb, 0.0, 1.0))
-            base_rgb[dst_y1:dst_y2, dst_x1:dst_x2] = np.clip(combined, 0.0, 1.0)
+        base_rgb[dst_y1:dst_y2, dst_x1:dst_x2] = linear_to_srgb(combined_lin)
 
         # マスク領域の抽出（光量の最大チャンネル）
         sub_mask = np.clip(np.max(sub_light_lin, axis=-1), 0.0, 1.0)

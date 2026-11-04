@@ -4,11 +4,11 @@
 
 ---
 
-## 1. 光学物理モデル (Optical Burn-in Model v2.0)
+## 1. 光学物理モデル (Optical Burn-in Model)
 
 フィルムカメラの日付モジュールは、微小な発光ダイオード（LED）またはランプから発せられた光線束がレンズアレイを介してフィルム裏面/表面に投射されることで感光乳剤を直接露光する。
 
-v2.0 では単なる 3 色レイヤーの重ね合わせを排し、**「距離変換によるセグメント内 LED 輝度尾根」＋「多重スケール点拡がり関数（PSF）」＋「H&D 非線形分光感光飽和」＋「3 階層の有機的ゆらぎ（Macro/Meso/Micro）」＋「リニア空間乳剤感光余力（Headroom）合成」** による物理エミュレーションを採用。
+単なる 3 色レイヤーの重ね合わせや安価なスクリーン合成を排し、**「距離変換によるセグメント内 LED 輝度尾根」＋「多重スケール点拡がり関数（PSF）」＋「H&D 非線形分光感光飽和」＋「3 階層の有機的ゆらぎ（Macro/Meso/Micro）」＋「リニア空間乳剤感光余力（Headroom）合成」** による物理エミュレーションを常時適用する。
 
 ```
                        [ 露光エネルギー E 分布 ]
@@ -55,40 +55,38 @@ $$I_{exposed} = \frac{I_{base} + L_{stamp}}{1.0 + \max(0, I_{base} + L_{stamp} -
 
 ## 2. タイポグラフィと配置仕様
 
-### 2.1 フォント方式（全11フォント）
+### 2.1 厳選フォント構成（全8種）
 
-| 方式 | 特徴 | 適用年代・カメラ | アポストロフィ |
+自社製の実機幾何学ゼロスクラッチ生成TrueType（4種）、液晶等幅（1種）に加え、物理感光シミュレーションを活かした空想・飛び道具フォント（3種、すべてOFL準拠）を収録。
+
+| 方式 | 特徴 | 適用年代・代表カメラ／世界観 | アポストロフィ |
 |---|---|---|---|
-| **`FDS_Mechanical_70s (70s Mechanical)`** | **【1970s機械式活字標準】** DIN 1451/JIS工業彫刻文字準拠（等幅620u, ステム96u, 角丸R=20u, カプセル0, カギ鼻1）。 | 世界初Canon Canodate E（1970）、Canon Datematic（1974）、Canon Data Back A | 傾斜ダッシュ（実機完全一致） |
 | **`FDS7_Strict_Compact (80s -7°)`** | **【黄金期標準】** 諏訪精工舎モジュール実機幾何学完全準拠（$W/H=0.50$, 前傾 $-7.0^\circ$, 厚さ $10\%$）。 | Canon Autoboy, Nikon L35AD（ピカイチ）, Olympus AF-10等 | 上部浮遊ドット（実機完全一致） |
 | **`FDS7_Strict_SLR (80s 0°)`** | **【一眼レフ標準】** 実機幾何学完全準拠の直立型（$W/H=0.50$, 直立 $0.0^\circ$, 厚さ $10\%$）。 | Nikon MF-12/14/16, Olympus Recordata, Minolta Data Back G等 | 上部浮遊ドット（実機完全一致） |
 | **`FDS_Dot_Strict (90s Dot Matrix)`** | **【写ルンです・90s実機標準】** 5×7グリッド・縦長カプセルドット（$65\times 80$, $W/H\approx 0.537$, 斜線なし中空0）。 | 写ルンですデート、富士フイルム Cardia/Tiara、京セラ T-Proof、リコー GR1 | 斜め2ドット（実機完全一致） |
-| **`DSEG7_Classic (7-Segment)`** | 直立型の7セグLED（互換用）。 | 一般的なクォーツデートバック、デジタル表示 | 公式グリフ移植済み |
-| **`DSEG7_Italic (7-Segment)`** | 11.5度傾斜の7セグ（互換用）。 | デジタル時計・家電調 | 公式グリフ移植済み |
-| **`DSEG14_Classic (14-Segment)`** | 高級オーディオや車載機器調の14セグLED。 | 高級ユニット・プロ機器 | 標準対応 |
-| **`DSEG14_Italic (14-Segment)`** | 傾斜14セグLED。 | 90年代ハイテクコンパクト機 | 標準対応 |
-| **`VT323 (Dot Matrix)`** | 極小発光ドット群（縦長）。 | 「写ルンです」等の使い捨てカメラ | 標準対応 |
-| **`Silkscreen (Fine Dot)`** | 引き締まった正方形極小ドット（8px調）。 | 写ルンです以外のコンパクト機、業務用タイムコード | 標準対応 |
-| **`ShareTechMono (LCD Digital)`** | 端正な等幅液晶フォント。 | 90〜2000年代初期コンデジ、カシオG-SHOCK | 標準対応 |
+| **`FDS_Mechanical_70s (70s Mechanical)`** | **【1970s機械式活字標準】** DIN 1451/JIS工業彫刻文字準拠（等幅620u, ステム96u, 角丸R=20u, カプセル0, カギ鼻1）。 | 世界初Canon Canodate E（1970）、Canon Datematic（1974）、Canon Data Back A | 傾斜ダッシュ（実機完全一致） |
+| **`ShareTechMono (LCD Digital)`** | 端正な等幅液晶フォント。 | 90〜2000年代初期コンデジ、カシオG-SHOCK | 等幅液晶標準 |
+| **`Michroma (Cyber Telemetry)`** | **【空想・サイバー】** 超ワイド幾何学・平べったい横長プロポーション。 | 80s-90s宇宙探査機・SF映画（ブレードランナー等）のテレメトリ記録 | スラッシュ・アポストロフィ |
+| **`MochiyPopOne (Y2K Pop)`** | **【空想・Kawaii】** 平成レトロ・お餅のように角が丸く膨らんだ極太ポップ丸文字。 | 平成初期限定発売ファンシーカメラ、プリクラ電飾露光 | 丸型クォート |
+| **`EagleLake (Arcane Script)`** | **【空想・魔導】** ケルト・古文書風のインク筆記体。手書きの生々しい太細と掠れ。 | 錬金術師の野帳、禁断の魔導書、SCP極秘記録・血塗られた呪符 | 筆記アポストロフィ |
 
 ### 2.2 視覚サイズ自動正規化モデル (Visual Size Normalization)
 
 フォントごとのEM枠（仮想ボディ）やグリフ比率の差異を自動吸収し、`font_scale` を固定したままでも同一の視覚占有面積・高さを保つアルゴリズム：
 
-基準文字列 $S_{ref} = \text{"88 88 88"}$ に対する各フォントの描画矩形 $(W_{font}, H_{font})$ と、理想ターゲットサイズ $(W_{target}=360.0, H_{target}=65.0)$ より：
-
-$$k_{norm} = \left(\frac{W_{target}}{W_{font}}\right)^{0.75} \times \left(\frac{H_{target}}{H_{font}}\right)^{0.25}$$
-
-> [!NOTE]
-> **FDS7Strict / FDSDotStrict シリーズの高さ基準正規化**:
-> 実機モジュール仕様（$W/H = 0.500 \sim 0.537$）である `FDS7Strict` および `FDSDotStrict` シリーズは、横幅引き伸ばしによる不要な巨大化を防ぐため、高さ基準（$H_{target} / H_{font}$）で直接スケール正規化され、実機通りのスリムかつ控えめな佇まいを完璧に維持します。
-
+- 基準フォントサイズ: $S_{base} = \max(10, \text{int}(S \times 0.040 \times \text{font\_scale}))$ （現代のディスプレイ・SNS表示における視認性と写真全体のバランスを両立する黄金比率 $4.0\%$）
 - 有効フォントサイズ: $S_{effective} = \text{round}(S_{base} \times k_{norm})$
 - 実点灯ピクセル外接矩形クロップ（Tight Bounding Box Alignment）により、フォント固有のアセンダ／ディセンダ余白を完全排除し、四隅マージン位置をピクセル単位で完全一致させる。
 
-### 2.3 日付フォーマット記法と時刻制御 (`show_time`)
+### 2.3 直感的な日付入力・生成仕様
 
-| フォーマット | 出力例 (show_time=False) | 出力例 (show_time=True) | 用途・地域 |
+`date_mode` による複雑な分岐を廃止し、`date_string` の内容に応じた直感的なパーサーに一本化：
+
+1. **直接入力**: そのまま文字列を入力（例: `'98 12 24`）
+2. **`auto` / `today` / `now`**: 実行時の現在日時を `date_format` と `show_time` に従って自動フォーマット（キャッシュ無効化対象）。
+3. **`random`**: 1985〜2005年のヴィンテージランダム日時を生成（`seed` による再現性あり）。
+
+| フォーマット記法 (`date_format`) | 出力例 (show_time=False) | 出力例 (show_time=True) | 用途・地域 |
 |---|---|---|---|
 | `'YY MM DD` | `'98 12 24` | `'98 12 24 18:30` | 日本・アジア標準（最もポピュラー） |
 | `MM DD 'YY` | `12 24 '98` | `12 24 '98 18:30` | 北米（US）標準 |
@@ -100,58 +98,57 @@ $$k_{norm} = \left(\frac{W_{target}}{W_{font}}\right)^{0.75} \times \left(\frac{
 | `YYYY-MM-DD` | `1998-12-24` | `1998-12-24 18:30` | 4桁西暦ハイフン区切り |
 
 - **時刻表示スイッチ (`show_time`)**:
-  - `show_time`（BOOLEAN）を True/False で切り替えるだけで、どの日付フォーマットであっても時刻（`HH:MM`）の付加・非表示をワンクリックで制御。
-  - `custom` モード時は入力文字列に時刻が含まれていれば自動トリム/表示維持し、未入力時は自動補完。
-  - `current_date`, `random_vintage` では生成日時に応じた時分が連動。
-- **日付入力モード (`date_mode`)**:
-  - `custom`: 任意の文字列（例: `'98 12 24'`）
-  - `current_date`: ComfyUI実行時の現在日時を自動変換
-  - `random_vintage`: 1985〜2005年のランダムな過去日時を自動生成（エモい写真生成に最適！）
+  - `show_time`（BOOLEAN）の True/False で時刻（`HH:MM`）の付加・非表示をワンクリックで制御。
+  - 直接入力時、時刻が含まれていれば自動トリム/維持し、未入力時は `"18:30"` を自動補完。
 
 ### 2.4 配置とマージン
 
 - デフォルト位置: **右下（Bottom-Right）**
-- マージン計算: 写真の短辺 $S = \min(W, H)$ を基準とする。
-  - 右マージン: $W - \text{margin}_x$ （短辺の約 4%〜6% 内側）
-  - 下マージン: $H - \text{margin}_y$ （短辺の約 3%〜5% 内側）
-- フォントサイズ: 短辺の約 2.5%〜4.0%（写真サイズに対して過大にならず、本物のサイズ感を維持）。
+- マージン計算: 写真の短辺 $S = \min(W, H)$ を基準とし、単一の `margin` スケールで縦横比（約 5:4）を維持しながら等方的に余白を制御。
 
 ---
 
 ## 3. カラーパレット定義
 
+特殊・飛び道具カラー（Cyber Green, Neo Pink, Crimson Red）は選択肢の最後尾に配置。
+
 | プリセット名 | コア色 (RGB) | 主発光色 (RGB) | ハレーション色 (RGB) | 解説 |
 |---|---|---|---|---|
-| **Amber Classic (王道アンバー)** | `(255, 255, 210)` | `(255, 130, 20)` | `(240, 45, 0)` | 90年代フィルムカメラの黄金色・最も親しみのあるオレンジ |
-| **Quartz Red (レトロレッド)** | `(255, 230, 220)` | `(255, 40, 20)` | `(200, 10, 0)` | 80年代初期の初期型クォーツデート。純赤に近い発光 |
-| **Fuji Orange (写ルンですオレンジ)** | `(255, 250, 190)` | `(255, 110, 10)` | `(250, 60, 10)` | 使い捨てカメラ特有の少し黄みがかった鮮烈なオレンジ |
-| **Golden Yellow (ゴールデン)** | `(255, 255, 240)` | `(255, 185, 30)` | `(240, 110, 0)` | 2000年代前後のコンパクト機に見られる黄みの強い発光 |
-| **Cyber Green (グリーンLED)** | `(230, 255, 230)` | `(40, 255, 80)` | `(0, 180, 40)` | 一部の特殊機器・ミリタリー・業務用カメラの日付 |
+| **Amber Classic** | `(255, 255, 210)` | `(255, 130, 20)` | `(240, 45, 0)` | 90年代フィルムカメラの黄金色・最も親しみのある王道アンバー |
+| **Quartz Red** | `(255, 230, 220)` | `(255, 40, 20)` | `(200, 10, 0)` | 80年代初期の赤色LEDクォーツデート。鮮烈なレトロレッド |
+| **Fuji Orange** | `(255, 250, 190)` | `(255, 115, 20)` | `(250, 60, 10)` | 写ルンです特有の少し黄みがかった鮮烈なオレンジ |
+| **Golden Yellow** | `(255, 255, 240)` | `(255, 185, 30)` | `(240, 110, 0)` | 2000年代前後のコンパクト機に見られる黄みの強い発光 |
+| **Bulb Warm Ivory** | `(255, 250, 232)` | `(255, 242, 204)` | `(255, 214, 138)` | 1970年代電球式データバック（Datematic）の温かい白熱球色 |
+| **Paper White (Monochrome)** | `(248, 246, 240)` | `(245, 242, 234)` | `(235, 232, 224)` | 1970年代銀塩モノクロ（Canodate E）の印画紙白抜き文字 |
+| **Cyber Green** | `(230, 255, 230)` | `(40, 255, 80)` | `(0, 180, 40)` | 【特殊・空想】香港映画ネオン・宇宙探査テレメトリ・サイバー感のある緑色発光 |
+| **Neo Pink** | `(255, 235, 248)` | `(255, 70, 170)` | `(230, 25, 115)` | 【特殊・空想】平成トイカメラ・プリクラ電飾・甘く広がるマゼンタMie散乱光 |
+| **Crimson Red** | `(255, 235, 225)` | `(235, 25, 35)` | `(185, 5, 15)` | 【特殊・空想】禁忌の魔導書・血の呪印・SCP極秘記録の禍々しい深紅 |
 
 ---
 
 ## 4. スタイル一括プリセット定義 (Style Presets)
 
-カメラの固有名詞を排し、地域・文化・時代背景を想起させる洗練されたプリセット体系：
+実機エミュレート9種に加え、物理感光を活かした空想（Fiction）3種（計12種）を収録。
 
-| プリセット名 | フォント | カラー | 日付フォーマット | show_time | core_glow | halation | 特徴・世界観 |
-|---|---|---|---|---|---|---|---|
-| **`Japanese Tokyo 90s`** | DSEG7_Italic | Amber Classic | `'YY MM DD` | False | 1.00 | 1.00 | 90年代日本の街角・日常スナップ（王道アンバー） |
-| **`Japanese Snap (Disposable)`** | VT323 | Fuji Orange | `'YY MM DD` | True | 0.50 | 1.00 | 写ルンです風・縦長ドット・時分併記 |
-| **`American West Coast`** | DSEG7_Italic | Golden Yellow | `MM DD 'YY` | False | 0.85 | 1.00 | 90年代西海岸・ロードトリップ（月日年順） |
-| **`American 80s (Red Quartz)`** | DSEG7_Classic | Quartz Red | `MM DD 'YY` | False | 1.00 | 1.30 | 80年代モーテル・ホームビデオ・赤色LED |
-| **`European Classic (Paris/Berlin)`** | DSEG7_Classic | Amber Classic | `DD.MM.YY` | False | 0.70 | 0.80 | 欧州の石畳・上品で控えめな露光（ピリオド区切り） |
-| **`Hong Kong Neon (90s Cinema)`** | DSEG14_Italic | Cyber Green | `'YY MM DD` | False | 1.10 | 1.60 | 90年代香港ネオン映画調・サイバーグリーン |
-| **`Y2K Digicam (Early 2000s)`** | ShareTechMono | Golden Yellow | `'YY MM DD` | True | 0.60 | 0.90 | 2000年代初頭の初期コンデジLCD液晶 |
-| **`Compact Fine Dot (Minimal)`** | Silkscreen | Fuji Orange | `'YY MM DD` | True | 0.40 | 0.90 | 超高精細スクエアドットマトリクス |
-| **`Custom`** | 任意 | 任意 | 任意 | 任意 | 任意 | 任意 | 各ウィジェットの手動設定をそのまま使用 |
+| プリセット名 | フォント | カラー | 日付フォーマット | show_time | 特徴・世界観 |
+|---|---|---|---|---|---|
+| **`Japanese Tokyo 90s`** | FDS7_Strict_Compact | Amber Classic | `'YY MM DD` | False | 90年代日本の街角・日常スナップ（王道アンバー） |
+| **`Japanese Snap (Disposable)`** | FDS_Dot_Strict | Fuji Orange | `'YY MM DD` | True | 写ルンです風・5×7カプセルドット・時分併記 |
+| **`American West Coast`** | FDS7_Strict_Compact | Golden Yellow | `MM DD 'YY` | False | 90年代西海岸・ロードトリップ（月日年順） |
+| **`American 80s (Red Quartz)`** | FDS7_Strict_SLR | Quartz Red | `MM DD 'YY` | False | 80年代モーテル・一眼レフ・赤色LED |
+| **`European Classic (Paris/Berlin)`** | FDS7_Strict_SLR | Amber Classic | `DD.MM.YY` | False | 欧州の石畳・上品で控えめな露光（ピリオド区切り） |
+| **`Y2K Digicam (Early 2000s)`** | ShareTechMono | Golden Yellow | `'YY MM DD` | True | 2000年代初頭の初期コンデジLCD液晶 |
+| **`Compact Fine Dot (Minimal)`** | FDS_Dot_Strict | Fuji Orange | `'YY MM DD` | True | 90年代コンパクト機微細カプセルドット |
+| **`Monochrome 70s (Canodate E)`** | FDS_Mechanical_70s | Paper White | `YY MM DD` | False | 70年代銀塩モノクロ（機械式彫刻活字） |
+| **`Vintage 70s Color (Datematic)`** | FDS_Mechanical_70s | Bulb Warm Ivory | `'YY MM DD` | False | 70年代カラー（電球色ウォームアイボリー） |
+| **`Cyber Telemetry (80s Sci-Fi)`** | Michroma | Cyber Green | `'YY MM DD` | True | 80s-90s宇宙探査・SF映画調（超ワイド幾何学HUD） |
+| **`Y2K Pop (Heisei Fancy)`** | MochiyPopOne | Neo Pink | `'YY MM DD` | True | 平成トイカメラ・プリクラ電飾（お餅ぷっくり丸文字） |
+| **`Arcane Occult (Crimson Script)`** | EagleLake | Crimson Red | `'YY MM DD` | False | 禁断の魔導書・錬金術師の野帳（古文書インク筆記・深紅） |
+| **`Custom`** | 任意 | 任意 | 任意 | 任意 | 各ウィジェットの手動設定をそのまま使用 |
 
 ---
 
-## 5. パラメータ設計・UI連携（ComfyUI ノード用）
-
-最上段に `style_preset` を配置し、その直下に光学・フォント設定、続いて日付設定、レイアウト設定という直感的な階層構造を採用。
-同梱のフロントエンド拡張（`web/js/film_date_stamp.js`）により、**プリセット選択時に各パラメータが自動同期され、スライダーや項目を手動で変更すると自動的に「Custom」へ切り替わる双方向連携**を実現。
+## 5. ノード定義仕様 (ComfyUI INPUT_TYPES)
 
 ```python
 {
@@ -159,41 +156,30 @@ $$k_{norm} = \left(\frac{W_{target}}{W_{font}}\right)^{0.75} \times \left(\frac{
         "image": ("IMAGE",),
         "style_preset": (list(STYLE_PRESETS.keys()), {"default": "Custom"}),
         # 光学・フォント設定 (プリセット連動項目)
-        "font_type": ["DSEG7_Classic (7-Segment)", "DSEG7_Italic (7-Segment)", "DSEG14_Classic (14-Segment)", "DSEG14_Italic (14-Segment)", "VT323 (Dot Matrix)", "Silkscreen (Fine Dot)", "ShareTechMono (LCD Digital)"],
-        "preset_color": ["Amber Classic", "Quartz Red", "Fuji Orange", "Golden Yellow", "Cyber Green"],
+        "font_type": (SUPPORTED_FONTS, {"default": "FDS7_Strict_Compact (80s -7°)"}),
+        "preset_color": (list(COLOR_PRESETS.keys()), {"default": "Amber Classic"}),
         "exposure_intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
         "core_glow": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
         "halation": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
-        "optical_burn": ("BOOLEAN", {"default": True}),
-        # 日付設定
-        "date_mode": ["custom", "current_date", "random_vintage"],
+        # 日付設定 (直接文字列 または "auto" / "today" / "random")
         "date_string": ("STRING", {"default": "'98 12 24"}),
-        "date_format": ["'YY MM DD", "MM DD 'YY", "DD MM 'YY", "DD.MM.YY", "YY-MM-DD", "YY.MM.DD", "YYYY MM DD", "YYYY-MM-DD"],
+        "date_format": (SUPPORTED_DATE_FORMATS, {"default": "'YY MM DD"}),
         "show_time": ("BOOLEAN", {"default": False}),
         # レイアウト設定
-        "position": ["bottom_right", "bottom_left", "top_right", "top_left"],
+        "position": (SUPPORTED_POSITIONS, {"default": "bottom_right"}),
         "font_scale": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 2.5, "step": 0.05}),
-        "margin_x": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
-        "margin_y": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
+        "margin": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
     },
     "optional": {
         "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+        "irregularity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
     }
 }
 ```
 
-### 5.1 出力スロット仕様 (Output Types)
+### 5.1 出力スロット仕様
 
 ```python
 RETURN_TYPES = ("IMAGE", "MASK", "STRING")
 RETURN_NAMES = ("image", "mask", "date_text")
 ```
-
-1. **`image` (`IMAGE`)**:
-   - フィルム乳剤への光学露光が焼き付けられた画像テンソル `[B, H, W, C]`。
-2. **`mask` (`MASK`)**:
-   - スタンプ発光領域のアルファマスクテンソル `[B, H, W]` (0.0〜1.0)。
-   - コア部分は完全な白（1.0）、ハレーション・グロー外縁は滑らかに減衰。後段での Film Grain 付与や Inpaint マスクとして利用可能。
-3. **`date_text` (`STRING`)**:
-   - 実際に画像へ焼き付けられた日付・時刻文字列（例: `'98 12 24 18:30`）。
-   - `SaveImage` のファイル名プレフィックスやキャプションノードへの受け渡しが可能。

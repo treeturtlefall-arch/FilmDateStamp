@@ -58,7 +58,6 @@ def generate_test_board():
         date_string="'98 12 24",
         preset_color="Amber Classic",
         font_type="FDS7_Strict_Compact (80s -7°)",
-        optical_burn=True,
     )
     test_sub2 = render_film_date_stamp(test_sub2, config=cfg2)
     test_img.paste(test_sub2, (800, 0))
@@ -73,12 +72,12 @@ def generate_test_board():
     test_sub3 = render_film_date_stamp(test_sub3, config=cfg3)
     test_img.paste(test_sub3, (0, 410))
 
-    # 4. 右下（夕暮れ: Fuji Orange / VT323 ドットマトリクス）
+    # 4. 右下（夕暮れ: Fuji Orange / FDS_Dot_Strict 90s写ルンですカプセルドット）
     test_sub4 = test_img.crop((610, 410, board_w, board_h))
     cfg4 = DateStampConfig(
         date_string="10 24 '02",
         preset_color="Fuji Orange",
-        font_type="VT323 (Dot Matrix)",
+        font_type="FDS_Dot_Strict (90s Dot Matrix)",
         font_scale=1.1,
     )
     test_sub4 = render_film_date_stamp(test_sub4, config=cfg4)
