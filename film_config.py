@@ -34,6 +34,21 @@ COLOR_PRESETS: Dict[str, Dict[str, Tuple[int, int, int]]] = {
         "body": (40, 255, 80),
         "halation": (0, 180, 40),
     },
+    "Paper White (Monochrome)": {
+        "core": (248, 246, 240),
+        "body": (245, 242, 234),
+        "halation": (235, 232, 224),
+    },
+    "Bulb Warm Ivory": {
+        "core": (255, 250, 232),
+        "body": (255, 242, 204),
+        "halation": (255, 214, 138),
+    },
+    "Bulb Amber": {
+        "core": (255, 246, 218),
+        "body": (255, 210, 128),
+        "halation": (255, 160, 64),
+    },
 }
 
 # 物理分光感度・散乱波長特性（H&D 非線形感光モデル用）
@@ -66,6 +81,21 @@ PHYSICAL_SPECTRA: Dict[str, Dict[str, Tuple[float, float, float]]] = {
         "scatter": (0.05, 1.00, 0.22),
         "tint": (0.90, 1.00, 0.92),
     },
+    "Paper White (Monochrome)": {
+        "sens": (2.90, 2.86, 2.75),
+        "scatter": (0.85, 0.84, 0.80),
+        "tint": (0.973, 0.965, 0.941),
+    },
+    "Bulb Warm Ivory": {
+        "sens": (3.20, 2.65, 1.38),
+        "scatter": (1.00, 0.72, 0.26),
+        "tint": (1.00, 0.949, 0.800),
+    },
+    "Bulb Amber": {
+        "sens": (3.30, 1.95, 0.65),
+        "scatter": (1.00, 0.52, 0.08),
+        "tint": (1.00, 0.92, 0.75),
+    },
 }
 
 SUPPORTED_DATE_FORMATS = [
@@ -89,6 +119,7 @@ SUPPORTED_POSITIONS = [
 # 利用可能フォント定義 (フォントファイル名, シアー傾斜角度)
 # SIL OFL 1.1 Section 3 (Reserved Font Name) に準拠した派生フォント名を指定
 FONT_MAP: Dict[str, Tuple[str, float]] = {
+    "FDS_Mechanical_70s (70s Mechanical)": ("FDSMechanical70s-Regular.ttf", 0.0),
     "FDS7_Strict_Compact (80s -7°)": ("FDS7Strict-Compact.ttf", 0.0),
     "FDS7_Strict_SLR (80s 0°)": ("FDS7Strict-SLR.ttf", 0.0),
     "FDS_Dot_Strict (90s Dot Matrix)": ("FDSDotStrict-Regular.ttf", 0.0),
@@ -233,6 +264,38 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "font_scale": 1.10,
         "margin_x": 1.50,
         "margin_y": 1.50,
+    },
+    "Monochrome 70s (Canodate E)": {
+        "date_mode": "custom",
+        "date_string": "74 12 25",
+        "date_format": "YY MM DD",
+        "show_time": False,
+        "font_type": "FDS_Mechanical_70s (70s Mechanical)",
+        "preset_color": "Paper White (Monochrome)",
+        "exposure_intensity": 1.00,
+        "core_glow": 0.50,
+        "halation": 0.60,
+        "optical_burn": True,
+        "position": "bottom_right",
+        "font_scale": 1.00,
+        "margin_x": 1.00,
+        "margin_y": 1.00,
+    },
+    "Vintage 70s Color (Datematic)": {
+        "date_mode": "custom",
+        "date_string": "'74 12 25",
+        "date_format": "'YY MM DD",
+        "show_time": False,
+        "font_type": "FDS_Mechanical_70s (70s Mechanical)",
+        "preset_color": "Bulb Warm Ivory",
+        "exposure_intensity": 1.05,
+        "core_glow": 0.70,
+        "halation": 0.85,
+        "optical_burn": True,
+        "position": "bottom_right",
+        "font_scale": 1.00,
+        "margin_x": 1.00,
+        "margin_y": 1.00,
     },
 }
 

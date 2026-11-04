@@ -272,6 +272,55 @@ class TestFilmStamp(unittest.TestCase):
         g_apos = tt["glyf"]["quotesingle"]
         self.assertEqual(g_apos.numberOfContours, 2)
 
+    def test_strict_mechanical_font_geometry_and_glyphs(self):
+        """FDSMechanical70s-Regular.ttf の UPM 1000、直立角 0.0°、等幅 620、Cap Height 720、全収録文字、'0'カプセル形状、'1'カギ鼻の検証"""
+        import os
+        from fontTools.ttLib import TTFont
+
+        font_key = "FDS_Mechanical_70s (70s Mechanical)"
+        self.assertIn(font_key, SUPPORTED_FONTS)
+        fpath, shear = get_font_file_and_shear(font_key)
+        self.assertTrue(os.path.exists(fpath), f"Missing font file: {fpath}")
+        self.assertTrue(fpath.endswith("FDSMechanical70s-Regular.ttf"))
+        self.assertEqual(shear, 0.0)
+
+        tt = TTFont(fpath)
+        self.assertEqual(tt["head"].unitsPerEm, 1000)
+        self.assertAlmostEqual(tt["post"].italicAngle, 0.0, places=1)
+        self.assertEqual(tt["post"].isFixedPitch, 1)
+        self.assertEqual(tt["OS/2"].sCapHeight, 720)
+
+        required_codepoints = [
+            0x20, 0x27, 0x2D, 0x2E, 0x2F, 0x3A,
+            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+        ]
+        cmap = tt.getBestCmap()
+        for cp in required_codepoints:
+            self.assertIn(cp, cmap, f"Codepoint U+{cp:04X} missing in FDSMechanical70s-Regular.ttf")
+            gname = cmap[cp]
+            adv, _ = tt["hmtx"][gname]
+            self.assertEqual(adv, 620, f"Glyph {gname} advance width should be 620, got {adv}")
+
+        # 数字 '0' のカプセル形状検証 (W=380, H=720, W/H ≈ 0.528, 外周+内周の2輪郭)
+        g0 = tt["glyf"]["zero"]
+        w0 = g0.xMax - g0.xMin
+        h0 = g0.yMax - g0.yMin
+        self.assertEqual(w0, 380)
+        self.assertEqual(h0, 720)
+        self.assertAlmostEqual(w0 / h0, 380.0 / 720.0, places=3)
+        self.assertEqual(g0.numberOfContours, 2)
+
+        # 数字 '1' の左下45°カギ鼻ビーク検証 (メインステム幅 96 に対しカギ鼻突出により総幅 240, H=720, 台座なし単一輪郭)
+        g1 = tt["glyf"]["one"]
+        w1 = g1.xMax - g1.xMin
+        h1 = g1.yMax - g1.yMin
+        self.assertEqual(w1, 240)
+        self.assertEqual(h1, 720)
+        self.assertEqual(g1.numberOfContours, 1)
+        # 頂点 (Y=720) から左下へ突き出すカギ鼻先端 (xMin=166) がメインステム左辺 (X=310) より左に大きく突出していること
+        self.assertLess(g1.xMin, 220)
+        self.assertEqual(g1.xMax, 406)
+
 
 class TestComfyUINode(unittest.TestCase):
     """ComfyUI ノード FilmDateStamp のテスト"""

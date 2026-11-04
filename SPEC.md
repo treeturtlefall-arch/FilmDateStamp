@@ -55,10 +55,11 @@ $$I_{exposed} = \frac{I_{base} + L_{stamp}}{1.0 + \max(0, I_{base} + L_{stamp} -
 
 ## 2. タイポグラフィと配置仕様
 
-### 2.1 フォント方式（全10フォント）
+### 2.1 フォント方式（全11フォント）
 
 | 方式 | 特徴 | 適用年代・カメラ | アポストロフィ |
 |---|---|---|---|
+| **`FDS_Mechanical_70s (70s Mechanical)`** | **【1970s機械式活字標準】** DIN 1451/JIS工業彫刻文字準拠（等幅620u, ステム96u, 角丸R=20u, カプセル0, カギ鼻1）。 | 世界初Canon Canodate E（1970）、Canon Datematic（1974）、Canon Data Back A | 傾斜ダッシュ（実機完全一致） |
 | **`FDS7_Strict_Compact (80s -7°)`** | **【黄金期標準】** 諏訪精工舎モジュール実機幾何学完全準拠（$W/H=0.50$, 前傾 $-7.0^\circ$, 厚さ $10\%$）。 | Canon Autoboy, Nikon L35AD（ピカイチ）, Olympus AF-10等 | 上部浮遊ドット（実機完全一致） |
 | **`FDS7_Strict_SLR (80s 0°)`** | **【一眼レフ標準】** 実機幾何学完全準拠の直立型（$W/H=0.50$, 直立 $0.0^\circ$, 厚さ $10\%$）。 | Nikon MF-12/14/16, Olympus Recordata, Minolta Data Back G等 | 上部浮遊ドット（実機完全一致） |
 | **`FDS_Dot_Strict (90s Dot Matrix)`** | **【写ルンです・90s実機標準】** 5×7グリッド・縦長カプセルドット（$65\times 80$, $W/H\approx 0.537$, 斜線なし中空0）。 | 写ルンですデート、富士フイルム Cardia/Tiara、京セラ T-Proof、リコー GR1 | 斜め2ドット（実機完全一致） |

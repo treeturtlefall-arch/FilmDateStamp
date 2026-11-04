@@ -46,7 +46,8 @@
 - `nodes.py` — ComfyUI ノード定義層（PyTorch `Tensor` ⇄ `PIL.Image` / `NumPy`、バッチ処理）。
 - `film_stamp.py` — コア光学レンダリングエンジン（Pillow / NumPy ベース、視覚サイズ正規化、タイト矩形クロップ、ComfyUI非依存）。
 - `film_config.py` — 設定データクラス、カラープリセット、スタイル一括プリセット、日付フォーマットパーサー。
-- `fonts/` — 同梱フォント（全10種、オリジナル自社生成 ＆ SIL OFL 1.1 ライセンス）：
+- `fonts/` — 同梱フォント（全11種、オリジナル自社生成 ＆ SIL OFL 1.1 ライセンス）：
+  - `FDSMechanical70s-Regular.ttf`（★1970s機械式活字・DIN 1451/JIS工業彫刻文字完全準拠・自社ゼロスクラッチ生成TrueType）
   - `FDS7Strict-Compact.ttf`（★1980s実機幾何学完全準拠・前傾-7.0°・自社ゼロスクラッチ生成TrueType）
   - `FDS7Strict-SLR.ttf`（★1980s実機幾何学完全準拠・直立0.0°・自社ゼロスクラッチ生成TrueType）
   - `FDSDotStrict-Regular.ttf`（★写ルンです・90sコンパクト機 5×7縦長カプセルドット完全準拠・自社ゼロスクラッチ生成TrueType）

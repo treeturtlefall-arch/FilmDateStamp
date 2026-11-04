@@ -7,6 +7,19 @@
 ## [2.1.0] - 2026-11-04
 
 ### Added
+- **1970年代最初期 機械式活字・タングステン豆電球光学投影フォント『FDS-Mechanical70s』の同梱**:
+  - 世界初のデートカメラ「キヤノデートE（1970年）」および「キヤノン デートマチック（1974年）」の文字盤ドラムに準拠した、DIN 1451 / JIS工業彫刻文字ベースの完全オリジナル自社生成TrueTypeフォント（`FDSMechanical70s-Regular.ttf`）。
+  - **1000 UPM 厳密幾何仕様**: 等幅アドバンス幅 620 units、Cap Height 720 units、均一線幅 96 units、単玉縮小レンズの解像ボケを再現する角丸フィレット（外角 R=20u / 内角 R=12u）。
+  - **歴史的字形の完全再現**: 縮小投影時の黒潰れを防ぐ角丸カプセル形状（Stadium）の `0`、頂点から左下45°へ力強く突き出す明確なカギ鼻ビークを持つ `1`（台座セリフなし）、頂点が閉じたクローズド・トライアングル `4`、-18°傾斜ダッシュのアポストロフィ `'`。
+  - **タングステン白熱電球（2600K）発光物理＆カラープリセット**:
+    - `Paper White (Monochrome)`: モノクロ銀塩印画紙の紙白（`#F8F6F0`）。ネガ上の Dmax 遮光により、写真上に純白の白抜き文字として浮かび上がる物理現象を再現。
+    - `Bulb Warm Ivory`: 70年代カラー写真標準。タングステン豆電球の温かみのある象牙色（`#FFF2CC`）と外縁アンバーフレア。
+    - `Bulb Amber`: 強露光・夜間撮影用の温かい琥珀電球色（`#FFD280`）。
+  - **新スタイルプリセット**:
+    - `Monochrome 70s (Canodate E)`: モノクロ写真 × 白抜き活字スタンプ（`74 12 25`）。
+    - `Vintage 70s Color (Datematic)`: 70年代カラー写真 × タングステン電球色スタンプ（`'74 12 25`）。
+  - フォント自動ビルドスクリプト: [`scripts/build_strict_mechanical_font.py`](./scripts/build_strict_mechanical_font.py)
+  - 比較検証スクリプト & レポート: [`scripts/compare_strict_mechanical.py`](./scripts/compare_strict_mechanical.py)（[`assets/fds_mechanical_strict_comparison_report.png`](./assets/fds_mechanical_strict_comparison_report.png)）
 - **1980s実機幾何学完全準拠のオリジナル自社生成TrueTypeフォント『FDS7Strict』シリーズの同梱**:
   - 1980年代に世界市場シェア95%以上を独占した諏訪精工舎（現・セイコーエプソン）製オートデーティングモジュールの物理・特許調査に基づき、Python `fontTools` で数学的座標からゼロスクラッチ自動生成された完全オリジナルフォント。
   - **`FDS7Strict-Compact.ttf`**: 80年代大ヒットコンパクト機（Canon Autoboy、Nikon L35AD ピカイチ、Olympus AF-10等）に準拠した控えめな前傾 $-7.0^\circ$ × スリム縦長比率 $W/H=0.500$。
@@ -20,16 +33,16 @@
   - 水平10u・垂直20uの微小ギャップ設計により、`Fuji Orange (255, 115, 20)` 露光時に隣接ドットが乳剤内で滑らかに繋がる「光学融合（Optical Coalescence）」を実現。
 - **フォント自動ビルドスクリプト**: [`scripts/build_strict_7seg_font.py`](./scripts/build_strict_7seg_font.py)、[`scripts/build_strict_dot_font.py`](./scripts/build_strict_dot_font.py)
 - **新旧フォント光学比較スクリプト & レポート**: [`scripts/compare_strict_7seg.py`](./scripts/compare_strict_7seg.py)（[`assets/fds7_strict_comparison_report.png`](./assets/fds7_strict_comparison_report.png)）および [`scripts/compare_strict_dot.py`](./scripts/compare_strict_dot.py)（[`assets/fds_dot_strict_comparison_report.png`](./assets/fds_dot_strict_comparison_report.png)）
-- **自動テストの拡充 (全21件)**: UPM 1000、イタリック角、全収録グリフ（数字・記号）、`FDS7Strict`（$W/H=0.500$）および `FDSDotStrict`（$W/H\approx 0.537$・斜線なし中空0）の厳密テストを追加。
+- **自動テストの拡充 (全22件)**: UPM 1000、イタリック角、全収録グリフ（数字・記号）、`FDS7Strict`（$W/H=0.500$）、`FDSDotStrict`（$W/H\approx 0.537$・斜線なし中空0）、および `FDSMechanical70s`（等幅620u・Cap Height 720u・カギ鼻1）の厳密テストを追加。
 
 ### Changed
-- **主要スタイルプリセットのデフォルトフォントを `FDS7Strict` / `FDSDotStrict` へ正式昇格**:
+- **主要スタイルプリセットのデフォルトフォントを実機厳密フォントへ正式昇格**:
   - `Japanese Tokyo 90s` および `American West Coast` を `FDS7_Strict_Compact (80s -7°)` に更新。
   - `American 80s (Red Quartz)` および `European Classic (Paris/Berlin)` を `FDS7_Strict_SLR (80s 0°)` に更新。
   - `Japanese Snap (Disposable)` を `FDS_Dot_Strict (90s Dot Matrix)` に更新し、`Fuji Orange` の主発光色を実機準拠の `(255, 115, 20)` に調整。
   - ComfyUI フロントエンド JS（`web/js/film_date_stamp.js`）および公式ワークフロー JSON（`workflows/film_date_stamp_workflow.json`）を完全同期。
-- **FDS7Strict の高さ基準視覚サイズ正規化**:
-  - 実機のスリム比率（W/H=0.50）を活かすため、横幅引き伸ばしを行わず高さ基準で正規化。
+- **FDS7Strict / FDSDotStrict の高さ基準視覚サイズ正規化**:
+  - 実機のスリム比率（W/H=0.50〜0.537）を活かすため、横幅引き伸ばしを行わず高さ基準で正規化。
 
 ---
 
