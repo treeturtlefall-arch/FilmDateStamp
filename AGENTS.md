@@ -82,7 +82,7 @@ ComfyUI 本体の仮想環境 Python を使って、単体で高速に自動テ�
 # テストボード画像の生成 (assets/prototype_test.png)
 & "C:\Users\coffe\Documents\ComfyUI\.venv\Scripts\python.exe" "C:\Users\coffe\Documents\FilmDateStamp\scripts\prototype_render.py"
 
-# ショーケース画像の生成 (assets/presets_showcase.png)
+# ショーケース画像の生成 (assets/presets_showcase_en.png / presets_showcase_ja.png)
 & "C:\Users\coffe\Documents\ComfyUI\.venv\Scripts\python.exe" "C:\Users\coffe\Documents\FilmDateStamp\scripts\generate_presets_showcase.py"
 
 # 厳選フォント比較レポート画像の生成 (assets/font_comparison_report_v2.png)

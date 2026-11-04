@@ -8,7 +8,8 @@ import sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-PROJECT_DIR = r"C:\Users\coffe\Documents\FilmDateStamp"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, PROJECT_DIR)
 
 from film_config import DateStampConfig, FONT_MAP

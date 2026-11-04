@@ -15,7 +15,6 @@ try:
     from .film_config import (
         DateStampConfig,
         resolve_date_text,
-        COLOR_PRESETS,
         PHYSICAL_SPECTRA,
         FONT_MAP,
     )
@@ -23,7 +22,6 @@ except (ImportError, ValueError):
     from film_config import (
         DateStampConfig,
         resolve_date_text,
-        COLOR_PRESETS,
         PHYSICAL_SPECTRA,
         FONT_MAP,
     )
@@ -643,7 +641,7 @@ def render_film_date_stamp(
         if orig_channels == 4:
             result = np.concatenate([base_rgb, alpha_channel], axis=-1)
         elif orig_channels == 1:
-            luma = (0.299 * base_rgb[:, :, 0] + 0.587 * base_rgb[:, :, 1] + 0.114 * base_rgb[:, :, 2])[:, :, None]
+            luma = (0.2126 * base_rgb[:, :, 0] + 0.7152 * base_rgb[:, :, 1] + 0.0722 * base_rgb[:, :, 2])[:, :, None]
             result = luma
         else:
             result = base_rgb

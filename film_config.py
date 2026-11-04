@@ -145,7 +145,7 @@ FONT_MAP: Dict[str, Tuple[str, float]] = {
 }
 
 SUPPORTED_FONTS = list(FONT_MAP.keys())
-SUPPORTED_COLORS = list(PHYSICAL_SPECTRA.keys())
+SUPPORTED_COLORS = list(COLOR_PRESETS.keys())
 
 # スタイル一括プリセット定義（地域・時代・文化ベース）
 STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {

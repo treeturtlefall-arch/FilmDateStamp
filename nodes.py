@@ -8,8 +8,8 @@ import numpy as np
 try:
     from .film_config import (
         DateStampConfig,
-        COLOR_PRESETS,
         STYLE_PRESETS,
+        SUPPORTED_COLORS,
         SUPPORTED_DATE_FORMATS,
         SUPPORTED_POSITIONS,
         SUPPORTED_FONTS,
@@ -18,8 +18,8 @@ try:
 except (ImportError, ValueError):
     from film_config import (
         DateStampConfig,
-        COLOR_PRESETS,
         STYLE_PRESETS,
+        SUPPORTED_COLORS,
         SUPPORTED_DATE_FORMATS,
         SUPPORTED_POSITIONS,
         SUPPORTED_FONTS,
@@ -40,7 +40,7 @@ class FilmDateStamp:
                 "style_preset": (list(STYLE_PRESETS.keys()), {"default": "Custom"}),
                 # 光学・フォント設定 (プリセット連動項目)
                 "font_type": (SUPPORTED_FONTS, {"default": "FDS7_Strict_Compact (80s -7°)"}),
-                "preset_color": (list(COLOR_PRESETS.keys()), {"default": "Amber Classic"}),
+                "preset_color": (SUPPORTED_COLORS, {"default": "Amber Classic"}),
                 "exposure_intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "core_glow": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "halation": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),

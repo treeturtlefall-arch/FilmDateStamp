@@ -206,11 +206,8 @@ def generate_all_showcases():
     print("Generating English presets showcase...")
     canvas_en = render_gallery(PRESETS_EN, is_english=True)
     out_en = os.path.join(ASSETS_DIR, "presets_showcase_en.png")
-    out_default = os.path.join(ASSETS_DIR, "presets_showcase.png")
     canvas_en.save(out_en, quality=95)
-    canvas_en.save(out_default, quality=95)
     print(f"Saved: {out_en}")
-    print(f"Saved (default): {out_default}")
 
     print("Generating Japanese presets showcase...")
     canvas_ja = render_gallery(PRESETS_JA, is_english=False)

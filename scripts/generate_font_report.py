@@ -101,7 +101,7 @@ def generate_font_comparison_report():
     desc_font = ImageFont.truetype(jp_font_path, 14) if jp_font_path else ImageFont.load_default()
     code_font = ImageFont.truetype(os.path.join(PROJECT_DIR, "fonts/ShareTechMono-Regular.ttf"), 16)
 
-    draw.text((40, 25), "FilmDateStamp - 厳選フォント比較レポート (v2.4 Production)", fill=(255, 255, 255), font=title_font)
+    draw.text((40, 25), "FilmDateStamp - 厳選フォント比較レポート (v1.0.0 Production)", fill=(255, 255, 255), font=title_font)
     draw.text((40, 68), "実機幾何学自社製フォント4種 ＋ 液晶等幅1種 ＋ 空想3種による光学感光レンダリング一覧", fill=(180, 190, 205), font=desc_font)
     draw.line([(40, 100), (w - 40, 100)], fill=(60, 65, 80), width=2)
 

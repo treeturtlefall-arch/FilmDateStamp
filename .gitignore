@@ -7,7 +7,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Temporary tests and builds
+# Temporary tests, local photo candidates, and builds
+candidate/
 tests/temp_fonts/
 build/
 dist/

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comfyui-film-date-stamp"
-version = "2.4.2"
+version = "1.0.0"
 description = "Simulates authentic film quartz date stamps with physical optical burn-in, multi-layer glow, and halation in ComfyUI."
 readme = "README.md"
 license = { text = "MIT" }
