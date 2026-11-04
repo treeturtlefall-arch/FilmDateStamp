@@ -49,7 +49,7 @@ class TestFilmConfig(unittest.TestCase):
         """スタイルプリセットの定義と適用検証（地域・文化プリセット）"""
         self.assertIn("Japanese Snap (Disposable)", STYLE_PRESETS)
         fuji_preset = STYLE_PRESETS["Japanese Snap (Disposable)"]
-        self.assertEqual(fuji_preset["font_type"], "VT323 (Dot Matrix)")
+        self.assertEqual(fuji_preset["font_type"], "FDS_Dot_Strict (90s Dot Matrix)")
         self.assertEqual(fuji_preset["preset_color"], "Fuji Orange")
         self.assertEqual(fuji_preset["core_glow"], 0.50)
         self.assertEqual(fuji_preset["font_scale"], 1.20)
@@ -60,7 +60,7 @@ class TestFilmConfig(unittest.TestCase):
         # DateStampConfig への適用確認
         cfg = DateStampConfig(style_preset="Japanese Snap (Disposable)")
         cfg.apply_style_preset_if_set()
-        self.assertEqual(cfg.font_type, "VT323 (Dot Matrix)")
+        self.assertEqual(cfg.font_type, "FDS_Dot_Strict (90s Dot Matrix)")
         self.assertEqual(cfg.preset_color, "Fuji Orange")
         self.assertEqual(cfg.core_glow, 0.50)
         self.assertEqual(cfg.font_scale, 1.20)
@@ -191,6 +191,86 @@ class TestFilmStamp(unittest.TestCase):
         # 全フォントの描画幅の最大/最小比が 1.25 以内に収まっていること（正規化前は 1.75 倍以上の差があった）
         ratio = max(widths) / max(1, min(widths))
         self.assertLessEqual(ratio, 1.25)
+
+    def test_strict_7seg_fonts_geometry_and_glyphs(self):
+        """FDS7Strict-SLR / FDS7Strict-Compact フォントのメタデータ・収録文字・スリム比率検証"""
+        import os
+        from fontTools.ttLib import TTFont
+
+        strict_fonts = [
+            ("FDS7_Strict_SLR (80s 0°)", "FDS7Strict-SLR.ttf", 0.0),
+            ("FDS7_Strict_Compact (80s -7°)", "FDS7Strict-Compact.ttf", -7.0),
+        ]
+        required_codepoints = [
+            0x20, 0x27, 0x2D, 0x2E, 0x3A,
+            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+        ]
+        for font_key, expected_file, expected_angle in strict_fonts:
+            self.assertIn(font_key, SUPPORTED_FONTS)
+            fpath, _ = get_font_file_and_shear(font_key)
+            self.assertTrue(os.path.exists(fpath), f"Missing font file: {fpath}")
+            self.assertTrue(fpath.endswith(expected_file))
+
+            tt = TTFont(fpath)
+            self.assertEqual(tt["head"].unitsPerEm, 1000)
+            self.assertAlmostEqual(tt["post"].italicAngle, expected_angle, places=1)
+
+            cmap = tt.getBestCmap()
+            for cp in required_codepoints:
+                self.assertIn(cp, cmap, f"Codepoint U+{cp:04X} missing in {expected_file}")
+
+            # 0.0° 直立版の数字 '8' の描画バウンディングボックスが W=400, H=800 (W/H=0.500) であることを検証
+            if expected_angle == 0.0:
+                g8 = tt["glyf"]["eight"]
+                w = g8.xMax - g8.xMin
+                h = g8.yMax - g8.yMin
+                self.assertEqual(w, 400)
+                self.assertEqual(h, 800)
+                self.assertAlmostEqual(w / h, 0.500, places=3)
+
+    def test_strict_dot_font_geometry_and_glyphs(self):
+        """FDSDotStrict-Regular.ttf の UPM 1000、直立角 0.0°、全収録文字、等幅480、およびアスペクト比 (W/H ≈ 0.537) 検証"""
+        import os
+        from fontTools.ttLib import TTFont
+
+        font_key = "FDS_Dot_Strict (90s Dot Matrix)"
+        self.assertIn(font_key, SUPPORTED_FONTS)
+        fpath, shear = get_font_file_and_shear(font_key)
+        self.assertTrue(os.path.exists(fpath), f"Missing font file: {fpath}")
+        self.assertTrue(fpath.endswith("FDSDotStrict-Regular.ttf"))
+        self.assertEqual(shear, 0.0)
+
+        tt = TTFont(fpath)
+        self.assertEqual(tt["head"].unitsPerEm, 1000)
+        self.assertAlmostEqual(tt["post"].italicAngle, 0.0, places=1)
+        self.assertEqual(tt["post"].isFixedPitch, 1)
+
+        required_codepoints = [
+            0x20, 0x27, 0x2D, 0x2E, 0x2F, 0x3A,
+            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+        ]
+        cmap = tt.getBestCmap()
+        for cp in required_codepoints:
+            self.assertIn(cp, cmap, f"Codepoint U+{cp:04X} missing in FDSDotStrict-Regular.ttf")
+            gname = cmap[cp]
+            adv, _ = tt["hmtx"][gname]
+            self.assertEqual(adv, 480, f"Glyph {gname} advance width should be 480, got {adv}")
+
+        # 数字 '0' および '8' の描画寸法 W=365, H=680 (W/H ≈ 0.537) の検証
+        for gname in ("zero", "eight"):
+            g = tt["glyf"][gname]
+            w = g.xMax - g.xMin
+            h = g.yMax - g.yMin
+            self.assertEqual(w, 365)
+            self.assertEqual(h, 680)
+            self.assertAlmostEqual(w / h, 0.537, places=3)
+
+        # 数字 '0' が斜線なしの中空リング（16ドット＝16輪郭）であることの検証
+        g0 = tt["glyf"]["zero"]
+        self.assertEqual(g0.numberOfContours, 16)
+        # アポストロフィ ''' が右上から左下への斜め2ドット（2輪郭）であることの検証
+        g_apos = tt["glyf"]["quotesingle"]
+        self.assertEqual(g_apos.numberOfContours, 2)
 
 
 class TestComfyUINode(unittest.TestCase):

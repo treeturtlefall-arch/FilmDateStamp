@@ -4,6 +4,35 @@
 
 ---
 
+## [2.1.0] - 2026-11-04
+
+### Added
+- **1980s実機幾何学完全準拠のオリジナル自社生成TrueTypeフォント『FDS7Strict』シリーズの同梱**:
+  - 1980年代に世界市場シェア95%以上を独占した諏訪精工舎（現・セイコーエプソン）製オートデーティングモジュールの物理・特許調査に基づき、Python `fontTools` で数学的座標からゼロスクラッチ自動生成された完全オリジナルフォント。
+  - **`FDS7Strict-Compact.ttf`**: 80年代大ヒットコンパクト機（Canon Autoboy、Nikon L35AD ピカイチ、Olympus AF-10等）に準拠した控えめな前傾 $-7.0^\circ$ × スリム縦長比率 $W/H=0.500$。
+  - **`FDS7Strict-SLR.ttf`**: 一眼レフ用データバック（Nikon MF-12/14/16、Olympus Recordata等）に準拠した端正な直立 $0.0^\circ$ × スリム比率 $W/H=0.500$。
+  - **セグメント厚10.0% & ギャップ3.5%**: 従来のデジタル時計フォント（DSEG7: 厚さ12.4%, ギャップ1.5%）の過密感を解消し、強ハレーション下でも「8」や「0」の内腔（窓）が潰れずクリアに抜ける光学対応設計。
+  - **$35^\circ$ テーパーカット ＋ 先端フラット面（幅18 units）**: 鋭利なピン角を排し、レンズ回折と収差による実機特有の柔らかい輪郭を再現。
+  - **独立上部浮遊ドット型アポストロフィ（`'`）**: 文字高上部70%〜95%に浮遊する専用ドット素子を実装し、`'88` や `'98` のアクセントを完璧に再現。
+- **写ルンです・90sコンパクト機実機仕様完全準拠の5×7ドットマトリクスフォント『FDS-DotStrict』の同梱**:
+  - **`FDSDotStrict-Regular.ttf`**: 5列×7行スリムグリッド（$W=365, H=680, W/H\approx 0.537$）、縦長カプセル型ドット（$65\times 80\text{ units}, R=32.5$）、等幅480 units、直立 $0.0^\circ$。
+  - 従来フォント（`VT323` の斜線入りゼロや `Silkscreen` の正方形カクカク感）を完全克服し、斜線なしの中空リング `0`、左上ヒゲ＋下部台座の `1`、クローズド三角型 `4`、斜め2ドットのアポストロフィ `'` を実装。
+  - 水平10u・垂直20uの微小ギャップ設計により、`Fuji Orange (255, 115, 20)` 露光時に隣接ドットが乳剤内で滑らかに繋がる「光学融合（Optical Coalescence）」を実現。
+- **フォント自動ビルドスクリプト**: [`scripts/build_strict_7seg_font.py`](./scripts/build_strict_7seg_font.py)、[`scripts/build_strict_dot_font.py`](./scripts/build_strict_dot_font.py)
+- **新旧フォント光学比較スクリプト & レポート**: [`scripts/compare_strict_7seg.py`](./scripts/compare_strict_7seg.py)（[`assets/fds7_strict_comparison_report.png`](./assets/fds7_strict_comparison_report.png)）および [`scripts/compare_strict_dot.py`](./scripts/compare_strict_dot.py)（[`assets/fds_dot_strict_comparison_report.png`](./assets/fds_dot_strict_comparison_report.png)）
+- **自動テストの拡充 (全21件)**: UPM 1000、イタリック角、全収録グリフ（数字・記号）、`FDS7Strict`（$W/H=0.500$）および `FDSDotStrict`（$W/H\approx 0.537$・斜線なし中空0）の厳密テストを追加。
+
+### Changed
+- **主要スタイルプリセットのデフォルトフォントを `FDS7Strict` / `FDSDotStrict` へ正式昇格**:
+  - `Japanese Tokyo 90s` および `American West Coast` を `FDS7_Strict_Compact (80s -7°)` に更新。
+  - `American 80s (Red Quartz)` および `European Classic (Paris/Berlin)` を `FDS7_Strict_SLR (80s 0°)` に更新。
+  - `Japanese Snap (Disposable)` を `FDS_Dot_Strict (90s Dot Matrix)` に更新し、`Fuji Orange` の主発光色を実機準拠の `(255, 115, 20)` に調整。
+  - ComfyUI フロントエンド JS（`web/js/film_date_stamp.js`）および公式ワークフロー JSON（`workflows/film_date_stamp_workflow.json`）を完全同期。
+- **FDS7Strict の高さ基準視覚サイズ正規化**:
+  - 実機のスリム比率（W/H=0.50）を活かすため、横幅引き伸ばしを行わず高さ基準で正規化。
+
+---
+
 ## [2.0.0] - 2026-11-03
 
 ### Added

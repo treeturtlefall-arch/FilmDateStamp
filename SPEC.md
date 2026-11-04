@@ -55,12 +55,15 @@ $$I_{exposed} = \frac{I_{base} + L_{stamp}}{1.0 + \max(0, I_{base} + L_{stamp} -
 
 ## 2. タイポグラフィと配置仕様
 
-### 2.1 フォント方式（全7フォント）
+### 2.1 フォント方式（全10フォント）
 
 | 方式 | 特徴 | 適用年代・カメラ | アポストロフィ |
 |---|---|---|---|
-| **`DSEG7_Classic (7-Segment)`** | 直立型の7セグLED。 | 一般的なクォーツデートバック、デジタル表示 | 公式グリフ移植済み |
-| **`DSEG7_Italic (7-Segment)`** | 往年の名機に見られる11.5度傾斜の公式イタリック7セグ。 | Canon Autoboy, Nikon L35AF, Olympus μ等 | 公式グリフ移植済み |
+| **`FDS7_Strict_Compact (80s -7°)`** | **【黄金期標準】** 諏訪精工舎モジュール実機幾何学完全準拠（$W/H=0.50$, 前傾 $-7.0^\circ$, 厚さ $10\%$）。 | Canon Autoboy, Nikon L35AD（ピカイチ）, Olympus AF-10等 | 上部浮遊ドット（実機完全一致） |
+| **`FDS7_Strict_SLR (80s 0°)`** | **【一眼レフ標準】** 実機幾何学完全準拠の直立型（$W/H=0.50$, 直立 $0.0^\circ$, 厚さ $10\%$）。 | Nikon MF-12/14/16, Olympus Recordata, Minolta Data Back G等 | 上部浮遊ドット（実機完全一致） |
+| **`FDS_Dot_Strict (90s Dot Matrix)`** | **【写ルンです・90s実機標準】** 5×7グリッド・縦長カプセルドット（$65\times 80$, $W/H\approx 0.537$, 斜線なし中空0）。 | 写ルンですデート、富士フイルム Cardia/Tiara、京セラ T-Proof、リコー GR1 | 斜め2ドット（実機完全一致） |
+| **`DSEG7_Classic (7-Segment)`** | 直立型の7セグLED（互換用）。 | 一般的なクォーツデートバック、デジタル表示 | 公式グリフ移植済み |
+| **`DSEG7_Italic (7-Segment)`** | 11.5度傾斜の7セグ（互換用）。 | デジタル時計・家電調 | 公式グリフ移植済み |
 | **`DSEG14_Classic (14-Segment)`** | 高級オーディオや車載機器調の14セグLED。 | 高級ユニット・プロ機器 | 標準対応 |
 | **`DSEG14_Italic (14-Segment)`** | 傾斜14セグLED。 | 90年代ハイテクコンパクト機 | 標準対応 |
 | **`VT323 (Dot Matrix)`** | 極小発光ドット群（縦長）。 | 「写ルンです」等の使い捨てカメラ | 標準対応 |
@@ -74,6 +77,10 @@ $$I_{exposed} = \frac{I_{base} + L_{stamp}}{1.0 + \max(0, I_{base} + L_{stamp} -
 基準文字列 $S_{ref} = \text{"88 88 88"}$ に対する各フォントの描画矩形 $(W_{font}, H_{font})$ と、理想ターゲットサイズ $(W_{target}=360.0, H_{target}=65.0)$ より：
 
 $$k_{norm} = \left(\frac{W_{target}}{W_{font}}\right)^{0.75} \times \left(\frac{H_{target}}{H_{font}}\right)^{0.25}$$
+
+> [!NOTE]
+> **FDS7Strict / FDSDotStrict シリーズの高さ基準正規化**:
+> 実機モジュール仕様（$W/H = 0.500 \sim 0.537$）である `FDS7Strict` および `FDSDotStrict` シリーズは、横幅引き伸ばしによる不要な巨大化を防ぐため、高さ基準（$H_{target} / H_{font}$）で直接スケール正規化され、実機通りのスリムかつ控えめな佇まいを完璧に維持します。
 
 - 有効フォントサイズ: $S_{effective} = \text{round}(S_{base} \times k_{norm})$
 - 実点灯ピクセル外接矩形クロップ（Tight Bounding Box Alignment）により、フォント固有のアセンダ／ディセンダ余白を完全排除し、四隅マージン位置をピクセル単位で完全一致させる。

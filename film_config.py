@@ -21,7 +21,7 @@ COLOR_PRESETS: Dict[str, Dict[str, Tuple[int, int, int]]] = {
     },
     "Fuji Orange": {
         "core": (255, 250, 190),
-        "body": (255, 110, 10),
+        "body": (255, 115, 20),
         "halation": (250, 60, 10),
     },
     "Golden Yellow": {
@@ -89,6 +89,9 @@ SUPPORTED_POSITIONS = [
 # 利用可能フォント定義 (フォントファイル名, シアー傾斜角度)
 # SIL OFL 1.1 Section 3 (Reserved Font Name) に準拠した派生フォント名を指定
 FONT_MAP: Dict[str, Tuple[str, float]] = {
+    "FDS7_Strict_Compact (80s -7°)": ("FDS7Strict-Compact.ttf", 0.0),
+    "FDS7_Strict_SLR (80s 0°)": ("FDS7Strict-SLR.ttf", 0.0),
+    "FDS_Dot_Strict (90s Dot Matrix)": ("FDSDotStrict-Regular.ttf", 0.0),
     "DSEG7_Classic (7-Segment)": ("FDS7Classic-Bold.ttf", 0.0),
     "DSEG7_Italic (7-Segment)": ("FDS7Classic-BoldItalic.ttf", 0.0),
     "DSEG14_Classic (14-Segment)": ("FDS14Classic-Bold.ttf", 0.0),
@@ -108,7 +111,7 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "date_string": "'98 12 24",
         "date_format": "'YY MM DD",
         "show_time": False,
-        "font_type": "DSEG7_Italic (7-Segment)",
+        "font_type": "FDS7_Strict_Compact (80s -7°)",
         "preset_color": "Amber Classic",
         "exposure_intensity": 1.00,
         "core_glow": 1.00,
@@ -124,7 +127,7 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "date_string": "'98 12 24 18:30",
         "date_format": "'YY MM DD",
         "show_time": True,
-        "font_type": "VT323 (Dot Matrix)",
+        "font_type": "FDS_Dot_Strict (90s Dot Matrix)",
         "preset_color": "Fuji Orange",
         "exposure_intensity": 1.00,
         "core_glow": 0.50,
@@ -140,7 +143,7 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "date_string": "12 24 '98",
         "date_format": "MM DD 'YY",
         "show_time": False,
-        "font_type": "DSEG7_Italic (7-Segment)",
+        "font_type": "FDS7_Strict_Compact (80s -7°)",
         "preset_color": "Golden Yellow",
         "exposure_intensity": 1.00,
         "core_glow": 0.85,
@@ -156,7 +159,7 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "date_string": "12 24 '88",
         "date_format": "MM DD 'YY",
         "show_time": False,
-        "font_type": "DSEG7_Classic (7-Segment)",
+        "font_type": "FDS7_Strict_SLR (80s 0°)",
         "preset_color": "Quartz Red",
         "exposure_intensity": 1.10,
         "core_glow": 1.00,
@@ -172,7 +175,7 @@ STYLE_PRESETS: Dict[str, Optional[Dict[str, object]]] = {
         "date_string": "24.12.98",
         "date_format": "DD.MM.YY",
         "show_time": False,
-        "font_type": "DSEG7_Classic (7-Segment)",
+        "font_type": "FDS7_Strict_SLR (80s 0°)",
         "preset_color": "Amber Classic",
         "exposure_intensity": 0.90,
         "core_glow": 0.70,

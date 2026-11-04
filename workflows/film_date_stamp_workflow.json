@@ -24,7 +24,7 @@
         "Node name for S&R": "Note"
       },
       "widgets_values": [
-        "【FilmDateStamp 公式ワークフロー】\n\nフィルム写真の感光乳剤に焼き付けられる「クォーツデート（日付スタンプ）」の光学・物理質感を再現する特化ノードです。\n\n■ 使い方:\n最上段の `style_preset` から好みの地域・文化・時代（Japanese, American, European, Hong Kong など）を選ぶだけで、フォントや光学エフェクト、日付形式、配置が自動セットされます。\n各パラメータを手動で変更すると自動的に「Custom」に切り替わり、好みの微調整が行えます。\n\n■ プリセット一覧:\n- Japanese Tokyo 90s: 90年代日本の街角・日常スナップ（'YY MM DD / 7セグ斜体 / アンバー）\n- Japanese Snap (Disposable): 写ルンです風使い捨てカメラ（'YY MM DD + 時分 / 縦長ドット / オレンジ）\n- American West Coast: 90s西海岸・ロードトリップ（MM DD 'YY / 7セグ斜体 / ゴールデン）\n- American 80s (Red Quartz): 80年代モーテル・ホームビデオ感（MM DD 'YY / 7セグ直立 / クォーツレッド）\n- European Classic (Paris/Berlin): 欧州の石畳・上品な佇まい（DD.MM.YY / 7セグ直立 / 控えめアンバー）\n- Hong Kong Neon (90s Cinema): 90年代香港ネオン映画調（'YY MM DD / 14セグ斜体 / サイバーグリーン）\n- Y2K Digicam (Early 2000s): 2000年代初期コンデジLCD液晶（'YY MM DD + 時分 / 液晶等幅 / ゴールデン）\n- Compact Fine Dot (Minimal): 超高精細ドットマトリクス（'YY MM DD + 時分 / 高精細ドット / オレンジ）\n\n■ 主な特徴・機能:\n1. 光学感光（Optical Burn-in）:\n   - フィルム乳剤へのLED露光をシミュレート（加算＋フィルム肩特性圧縮）。\n   - 白背景や高輝度部分では、光が飽和して自然に「文字が埋もれて見えにくくなる」実物の白飛び現象を再現。\n2. 3層光路モデル:\n   - 高輝度白コア ＋ アンバー主発光 ＋ 乳剤内赤色散乱（ハレーション）。\n3. 日付と時刻（show_time）:\n   - 日付フォーマットに関わらず、`show_time` の True/False で時刻（HH:MM）の表示・非表示を直感的に切り替え可能。"
+        "【FilmDateStamp 公式ワークフロー】\n\nフィルム写真の感光乳剤に焼き付けられる「クォーツデート（日付スタンプ）」の光学・物理質感を再現する特化ノードです。\n\n■ 使い方:\n最上段の `style_preset` から好みの地域・文化・時代（Japanese, American, European, Hong Kong など）を選ぶだけで、フォントや光学エフェクト、日付形式、配置が自動セットされます。\n各パラメータを手動で変更すると自動的に「Custom」に切り替わり、好みの微調整が行えます。\n\n■ プリセット一覧:\n- Japanese Tokyo 90s: 90年代日本の街角・日常スナップ（'YY MM DD / 実機7セグ-7° / アンバー）\n- Japanese Snap (Disposable): 写ルンです風使い捨てカメラ（'YY MM DD + 時分 / 実機5×7カプセルドット / オレンジ）\n- American West Coast: 90s西海岸・ロードトリップ（MM DD 'YY / 実機7セグ-7° / ゴールデン）\n- American 80s (Red Quartz): 80年代モーテル・一眼レフ調（MM DD 'YY / 実機7セグ直立 / クォーツレッド）\n- European Classic (Paris/Berlin): 欧州の石畳・上品な佇まい（DD.MM.YY / 実機7セグ直立 / 控えめアンバー）\n- Hong Kong Neon (90s Cinema): 90年代香港ネオン映画調（'YY MM DD / 14セグ斜体 / サイバーグリーン）\n- Y2K Digicam (Early 2000s): 2000年代初期コンデジLCD液晶（'YY MM DD + 時分 / 液晶等幅 / ゴールデン）\n- Compact Fine Dot (Minimal): 超高精細ドットマトリクス（'YY MM DD + 時分 / 高精細ドット / オレンジ）\n\n■ 主な特徴・機能:\n1. 実機幾何学フォント（FDS7Strict / FDSDotStrict）:\n   - 諏訪精工舎モジュール準拠7セグLED（W/H=0.50）および写ルンです・90sコンパクト機実機準拠5×7縦長カプセルドット（W/H=0.537、斜線なし中空0）を自社ゼロスクラッチ生成。\n2. 光学感光（Optical Burn-in）:\n   - フィルム裏面露光（Through-Base）と乳剤のLED露光をシミュレート（加算＋フィルム肩特性圧縮）。\n   - 白背景や高輝度部分では、光が飽和して自然に「文字が埋もれて見えにくくなる」実物の白飛び現象を再現。\n3. 3層光路モデル ＆ 有機的ゆらぎ:\n   - 高輝度白コア ＋ アンバー主発光 ＋ 乳剤内赤色散乱（ハレーション）。圧板ムラや素子個体差によるゆらぎも再現。\n4. 日付と時刻（show_time）:\n   - 日付フォーマットに関わらず、`show_time` の True/False で時刻（HH:MM）の表示・非表示を直感的に切り替え可能。"
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -120,7 +120,7 @@
       },
       "widgets_values": [
         "Japanese Tokyo 90s",
-        "DSEG7_Italic (7-Segment)",
+        "FDS7_Strict_Compact (80s -7°)",
         "Amber Classic",
         1.0,
         1.0,

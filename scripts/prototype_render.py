@@ -42,33 +42,33 @@ def generate_test_board():
     draw.text((640, 430), "Bottom-Right: Sunset Glow (Warm Orange / Fuji Orange)", fill=(40, 40, 40))
 
     # 4箇所にテスト日付スタンプを焼き付け
-    # 1. 上段左（暗部: Amber Classic / DSEG7 Italic）
+    # 1. 上段左（暗部: Amber Classic / FDS7_Strict_Compact 80sコンパクト機調 -7.0°）
     test_sub1 = test_img.crop((0, 0, 400, 390))
     cfg1 = DateStampConfig(
         date_string="'98 12 24",
         preset_color="Amber Classic",
-        font_type="DSEG7_Italic (7-Segment)",
+        font_type="FDS7_Strict_Compact (80s -7°)",
     )
     test_sub1 = render_film_date_stamp(test_sub1, config=cfg1)
     test_img.paste(test_sub1, (0, 0))
 
-    # 2. 上段右（白飛びハイライト部 - 埋もれの検証）
+    # 2. 上段右（白飛びハイライト部 - 埋もれの検証 / FDS7_Strict_Compact）
     test_sub2 = test_img.crop((800, 0, 1200, 390))
     cfg2 = DateStampConfig(
         date_string="'98 12 24",
         preset_color="Amber Classic",
-        font_type="DSEG7_Italic (7-Segment)",
+        font_type="FDS7_Strict_Compact (80s -7°)",
         optical_burn=True,
     )
     test_sub2 = render_film_date_stamp(test_sub2, config=cfg2)
     test_img.paste(test_sub2, (800, 0))
 
-    # 3. 左下（夜景: Quartz Red / DSEG7 Classic）
+    # 3. 左下（夜景: Quartz Red / FDS7_Strict_SLR 80s一眼レフデータバック調 0.0°）
     test_sub3 = test_img.crop((0, 410, 590, board_h))
     cfg3 = DateStampConfig(
         date_string="'93  8 15",
         preset_color="Quartz Red",
-        font_type="DSEG7_Classic (7-Segment)",
+        font_type="FDS7_Strict_SLR (80s 0°)",
     )
     test_sub3 = render_film_date_stamp(test_sub3, config=cfg3)
     test_img.paste(test_sub3, (0, 410))

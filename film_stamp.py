@@ -258,11 +258,19 @@ def get_font_visual_norm_factor(font_path: str) -> float:
 
     try:
         ref_font = get_cached_truetype_font(font_path, 100)
-        bbox = ref_font.getbbox("88 88 88")
-        w = max(1.0, float(bbox[2] - bbox[0]))
-        h = max(1.0, float(bbox[3] - bbox[1]))
-        norm_factor = ((_REF_TARGET_W / w) ** 0.75) * ((_REF_TARGET_H / h) ** 0.25)
-        norm_factor = max(0.4, min(2.5, norm_factor))
+        basename = os.path.basename(font_path)
+        if basename.startswith("FDS7Strict") or basename.startswith("FDSDotStrict"):
+            # FDS7Strict / FDSDotStrict は実機スリム比率 (W/H=0.50〜0.537) をそのまま保持し、
+            # 横幅引き伸ばしによる巨大化を防ぐため高さ基準 (cap height -> 65px) で正規化する
+            bbox = ref_font.getbbox("88 88 88")
+            h = max(1.0, float(bbox[3] - bbox[1]))
+            norm_factor = _REF_TARGET_H / h
+        else:
+            bbox = ref_font.getbbox("88 88 88")
+            w = max(1.0, float(bbox[2] - bbox[0]))
+            h = max(1.0, float(bbox[3] - bbox[1]))
+            norm_factor = ((_REF_TARGET_W / w) ** 0.75) * ((_REF_TARGET_H / h) ** 0.25)
+            norm_factor = max(0.4, min(2.5, norm_factor))
     except Exception:
         norm_factor = 1.0
 
