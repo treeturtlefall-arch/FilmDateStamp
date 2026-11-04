@@ -77,7 +77,7 @@ Search for `Film Date Stamp` or `FilmDateStamp` in ComfyUI-Manager and click **I
 Navigate to your ComfyUI `custom_nodes` directory and clone the repository:
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/rec-frame/FilmDateStamp.git
+git clone https://github.com/treeturtlefall-arch/FilmDateStamp.git
 ```
 
 ---
@@ -102,7 +102,7 @@ git clone https://github.com/rec-frame/FilmDateStamp.git
 | `core_glow` | FLOAT (0.0 – 2.0) | `1.0` | Intensity of the saturated white filament core |
 | `halation` | FLOAT (0.0 – 3.0) | `1.0` | Emulsion red halo scattering radius and intensity |
 | `date_string` | STRING | `'98 12 24` | Custom date string, or `"auto"`, `"today"`, `"random"` |
-| `date_format` | `'YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD` | `'YY MM DD` | Formatting convention for dynamic dates |
+| `date_format` | `'YY MM DD`, `YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD` | `'YY MM DD` | Formatting convention for dynamic dates |
 | `show_time` | BOOLEAN | `False` | Toggle timestamp (`HH:MM`) display |
 | `position` | `bottom_right`, `bottom_left`, `top_right`, `top_left` | `bottom_right` | Placement corner |
 | `font_scale` | FLOAT (0.5 – 2.5) | `1.0` | Font scale relative to image short edge |

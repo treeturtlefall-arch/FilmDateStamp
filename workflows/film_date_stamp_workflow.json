@@ -131,9 +131,26 @@
         "bottom_right",
         1.0,
         1.15,
+        1.0,
         42,
-        1.0
-      ]
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "style_preset": "Japanese Tokyo 90s",
+        "font_type": "FDS7_Strict_Compact (80s -7°)",
+        "preset_color": "Amber Classic",
+        "exposure_intensity": 1.0,
+        "core_glow": 1.0,
+        "halation": 1.0,
+        "date_string": "'98 12 24",
+        "date_format": "'YY MM DD",
+        "show_time": false,
+        "position": "bottom_right",
+        "font_scale": 1.0,
+        "margin": 1.15,
+        "irregularity": 1.0,
+        "seed": 42
+      }
     },
     {
       "id": 4,

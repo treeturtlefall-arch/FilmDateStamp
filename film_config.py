@@ -113,6 +113,7 @@ PHYSICAL_SPECTRA: Dict[str, Dict[str, Tuple[float, float, float]]] = {
 
 SUPPORTED_DATE_FORMATS = [
     "'YY MM DD",
+    "YY MM DD",
     "MM DD 'YY",
     "DD MM 'YY",
     "DD.MM.YY",
@@ -354,6 +355,8 @@ def format_datetime(dt: datetime.datetime, format_str: str, show_time: bool = Fa
 
     if format_str == "'YY MM DD":
         base = f"'{yy} {mm} {dd}"
+    elif format_str == "YY MM DD":
+        base = f"{yy} {mm} {dd}"
     elif format_str == "MM DD 'YY":
         base = f"{mm} {dd} '{yy}"
     elif format_str == "DD MM 'YY":

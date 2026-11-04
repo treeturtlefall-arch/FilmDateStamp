@@ -89,6 +89,7 @@ $$I_{exposed} = \frac{I_{base} + L_{stamp}}{1.0 + \max(0, I_{base} + L_{stamp} -
 | フォーマット記法 (`date_format`) | 出力例 (show_time=False) | 出力例 (show_time=True) | 用途・地域 |
 |---|---|---|---|
 | `'YY MM DD` | `'98 12 24` | `'98 12 24 18:30` | 日本・アジア標準（最もポピュラー） |
+| `YY MM DD` | `98 12 24` | `98 12 24 18:30` | アポストロフィなし（1970年代 Canodate E 等） |
 | `MM DD 'YY` | `12 24 '98` | `12 24 '98 18:30` | 北米（US）標準 |
 | `DD MM 'YY` | `24 12 '98` | `24 12 '98 18:30` | ヨーロッパ（EU）標準 |
 | `DD.MM.YY` | `24.12.98` | `24.12.98 18:30` | ドイツ・欧州伝統ピリオド区切り |
@@ -171,8 +172,8 @@ $$I_{exposed} = \frac{I_{base} + L_{stamp}}{1.0 + \max(0, I_{base} + L_{stamp} -
         "margin": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
     },
     "optional": {
-        "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
         "irregularity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
+        "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
     }
 }
 ```

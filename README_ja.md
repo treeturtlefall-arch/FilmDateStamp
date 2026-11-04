@@ -78,7 +78,7 @@ ComfyUI-Manager の検索ウィンドウで `Film Date Stamp` または `FilmDat
 ComfyUI の `custom_nodes` ディレクトリに移動し、クローンしてください：
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/rec-frame/FilmDateStamp.git
+git clone https://github.com/treeturtlefall-arch/FilmDateStamp.git
 ```
 
 ---
@@ -103,7 +103,7 @@ git clone https://github.com/rec-frame/FilmDateStamp.git
 | `core_glow` | 必須 | FLOAT (0.0〜2.0) | `1.0` | 中心白コアの強さ |
 | `halation` | 必須 | FLOAT (0.0〜3.0) | `1.0` | 赤色乳剤散乱の広がり・強さ |
 | `date_string` | 必須 | STRING | `'98 12 24` | 直接文字入力、または `"auto"` / `"today"` / `"random"` |
-| `date_format` | 必須 | `'YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD` | `'YY MM DD` | 自動日時生成時のフォーマット記法 |
+| `date_format` | 必須 | `'YY MM DD`, `YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD` | `'YY MM DD` | 自動日時生成時のフォーマット記法 |
 | `show_time` | 必須 | BOOLEAN | `False` | 時刻（HH:MM）の表示・非表示トグル |
 | `position` | 必須 | `bottom_right`, `bottom_left`, `top_right`, `top_left` | `bottom_right` | スタンプの配置位置 |
 | `font_scale` | 必須 | FLOAT (0.5〜2.5) | `1.0` | 画像短辺に対するフォントスケール |

@@ -1,0 +1,15 @@
+.git
+.github
+tests
+scripts
+candidate
+__pycache__
+*.py[cod]
+.venv
+.pytest_cache
+SPEC.md
+AGENTS.md
+.gitignore
+.comfyignore
+assets/prototype_test.png
+assets/font_comparison_report_v2.png

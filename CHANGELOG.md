@@ -40,7 +40,7 @@
 
 - **直感的な日付入力 (`date_string`) と時刻トグル (`show_time`)**:
   - 任意のカスタム文字列の直接入力に加え、`"auto"` / `"today"` / `"now"`（実行時現在日時、キャッシュ自動無効化）および `"random"`（1985〜2005年のヴィンテージ日時、シード再現性対応）をサポート。
-  - 8種の日付フォーマット（`'YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD`）と、ワンクリックで時分（`HH:MM`）を付加・除去する `show_time` トグルを搭載。
+  - 9種の日付フォーマット（`'YY MM DD`, `YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD`）と、ワンクリックで時分（`HH:MM`）を付加・除去する `show_time` トグルを搭載。
 
 - **ComfyUI ノード多機能入出力 (`nodes.py`)**:
   - バッチテンソル処理（`[B, H, W, C]`）、RGBA（4ch）アルファ保持、1chグレースケール入出力、HDRオーバーシュート保護に対応。
@@ -48,4 +48,4 @@
     1. `IMAGE`: 光学焼き付け合成後の画像テンソル。
     2. `MASK`: 文字コアからハレーション裾野まで滑らかに減衰する高精度アルファマスク `[B, H, W]`。
     3. `STRING` (`date_text`): 実際に描画された日付・時刻文字列。
-  - Comfy Registry / ComfyUI-Manager 準拠の `pyproject.toml`、公式サンプルワークフロー（`workflows/film_date_stamp_workflow.json`）、日英ドキュメント（`README.md` / `README_ja.md`）、単体テストスイート（全23件）を完備。
+  - Comfy Registry / ComfyUI-Manager 準拠の `pyproject.toml`、公式サンプルワークフロー（`workflows/film_date_stamp_workflow.json`）、日英ドキュメント（`README.md` / `README_ja.md`）、単体テストスイート（全24件）を完備。

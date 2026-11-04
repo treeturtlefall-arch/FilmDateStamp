@@ -89,11 +89,26 @@ class TestFilmConfig(unittest.TestCase):
             c.apply_style_preset_if_set()
             self.assertEqual(c.margin, 1.15)
 
+    def test_all_style_presets_values_in_supported_lists(self):
+        """全スタイルプリセットで指定されている各値が SUPPORTED_* リストに含まれていることの検証"""
+        for preset_name, preset_dict in STYLE_PRESETS.items():
+            if preset_name == "Custom" or preset_dict is None:
+                continue
+            if "font_type" in preset_dict:
+                self.assertIn(preset_dict["font_type"], SUPPORTED_FONTS, f"Invalid font_type in preset {preset_name}")
+            if "preset_color" in preset_dict:
+                self.assertIn(preset_dict["preset_color"], COLOR_PRESETS, f"Invalid preset_color in preset {preset_name}")
+            if "date_format" in preset_dict:
+                self.assertIn(preset_dict["date_format"], SUPPORTED_DATE_FORMATS, f"Invalid date_format in preset {preset_name}")
+            if "position" in preset_dict:
+                self.assertIn(preset_dict["position"], SUPPORTED_POSITIONS, f"Invalid position in preset {preset_name}")
+
     def test_format_datetime(self):
         """各日付フォーマット記法および show_time による時刻付加の検証"""
         dt = datetime.datetime(1998, 12, 24, 14, 35)
         # show_time=False (デフォルト)
         self.assertEqual(format_datetime(dt, "'YY MM DD"), "'98 12 24")
+        self.assertEqual(format_datetime(dt, "YY MM DD"), "98 12 24")
         self.assertEqual(format_datetime(dt, "MM DD 'YY"), "12 24 '98")
         self.assertEqual(format_datetime(dt, "DD MM 'YY"), "24 12 '98")
         self.assertEqual(format_datetime(dt, "DD.MM.YY"), "24.12.98")
@@ -522,7 +537,7 @@ class TestComfyUINode(unittest.TestCase):
                 self.assertIn(f'"{expected_val}"', js_content, f"Value '{expected_val}' for key '{key}' in preset '{preset_name}' missing in JS")
 
     def test_official_workflow_widget_mapping(self):
-        """公式ワークフロー JSON の FilmDateStamp ノードの widgets_values 順序が INPUT_TYPES と完全一致することの検証"""
+        """公式ワークフロー JSON の FilmDateStamp ノードの widgets_values 順序が INPUT_TYPES と整合していることの検証"""
         import json, os
         wf_path = os.path.join(os.path.dirname(__file__), "..", "workflows", "film_date_stamp_workflow.json")
         with open(wf_path, "r", encoding="utf-8") as f:
@@ -540,7 +555,21 @@ class TestComfyUINode(unittest.TestCase):
             expected_widgets.extend(list(input_types["optional"].keys()))
 
         values = fds_node["widgets_values"]
-        self.assertEqual(len(values), len(expected_widgets), f"Workflow widgets_values length mismatch: expected {len(expected_widgets)}, got {len(values)}")
+        # ComfyUI フロントエンドは seed ウィジェットの直後に control_after_generate を自動挿入するため、
+        # widgets_values は len(expected_widgets) + 1 (末尾が 'fixed' 等) または len(expected_widgets)
+        self.assertIn(
+            len(values),
+            (len(expected_widgets), len(expected_widgets) + 1),
+            f"Workflow widgets_values length mismatch: expected {len(expected_widgets)} or {len(expected_widgets)+1}, got {len(values)}"
+        )
+        if len(values) == len(expected_widgets) + 1:
+            self.assertIn(values[-1], ("fixed", "increment", "decrement", "randomize"))
+
+        # widgets_values_named の検証
+        if "widgets_values_named" in fds_node:
+            named = fds_node["widgets_values_named"]
+            for k in expected_widgets:
+                self.assertIn(k, named, f"Missing widget '{k}' in widgets_values_named")
 
     def test_mask_and_string_outputs(self):
         """STRING および MASK 出力が正しく生成され、形式・値が適切であることの検証"""

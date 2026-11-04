@@ -54,8 +54,8 @@ class FilmDateStamp:
                 "margin": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.1}),
             },
             "optional": {
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "irregularity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }
 
@@ -89,8 +89,8 @@ class FilmDateStamp:
         position: str,
         font_scale: float,
         margin: float,
-        seed: int = 0,
         irregularity: float = 1.0,
+        seed: int = 0,
     ):
         """
         バッチ画像 [B, H, W, C] に対して日付スタンプを焼き付ける。

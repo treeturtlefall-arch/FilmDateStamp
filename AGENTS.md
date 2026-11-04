@@ -76,7 +76,7 @@
 ComfyUI 本体の仮想環境 Python を使って、単体で高速に自動テストおよび各種検証スクリプトを実行する：
 
 ```powershell
-# 単体テストの実行（全23件、全件PASS確認）
+# 単体テストの実行（全24件、全件PASS確認）
 & "C:\Users\coffe\Documents\ComfyUI\.venv\Scripts\python.exe" -m unittest discover -s "C:\Users\coffe\Documents\FilmDateStamp\tests"
 
 # テストボード画像の生成 (assets/prototype_test.png)
