@@ -48,4 +48,4 @@
     1. `IMAGE`: 光学焼き付け合成後の画像テンソル。
     2. `MASK`: 文字コアからハレーション裾野まで滑らかに減衰する高精度アルファマスク `[B, H, W]`。
     3. `STRING` (`date_text`): 実際に描画された日付・時刻文字列。
-  - Comfy Registry / ComfyUI-Manager 準拠の `pyproject.toml`、公式サンプルワークフロー（`workflows/film_date_stamp_workflow.json`）、日英ドキュメント（`README.md` / `README_ja.md`）、単体テストスイート（全24件）を完備。
+  - Comfy Registry / ComfyUI-Manager 準拠の `pyproject.toml`、公式サンプルワークフロー（`workflows/film_date_stamp_workflow.json`）、3言語対応公式ドキュメント（`README.md` / `README_ja.md` / `README_zh.md`）、単体テストスイート（全24件）を完備。

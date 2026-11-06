@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/code-MIT-blue?style=flat-square)](LICENSE)
 [![Fonts: OFL 1.1](https://img.shields.io/badge/fonts-SIL_OFL_1.1-8a2be2?style=flat-square)](fonts/LICENSE-OFL.txt)
 
-**[🇺🇸 English](README.md)** | **[🇯🇵 日本語 (Japanese)](README_ja.md)**
+**[🇺🇸 English](README.md)** | **[🇯🇵 日本語 (Japanese)](README_ja.md)** | **[🇨🇳 简体中文 (Chinese)](README_zh.md)**
 
 [Why Optical Burn-in?](#-why-optical-burn-in) •
 [Highlight Bleed-Through](#-emulsion-headroom--highlight-bleed-through) •

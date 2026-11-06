@@ -51,6 +51,7 @@
 - `__init__.py` — ComfyUI カスタムノードのエントリーポイント。
 - `README.md` — グローバル公開用公式ドキュメント（英語・プライマリ）。
 - `README_ja.md` — 公式ドキュメント日本語版。
+- `README_zh.md` — 公式ドキュメント中国語（簡体字）版。
 - `nodes.py` — ComfyUI ノード定義層（PyTorch `Tensor` ⇄ `PIL.Image` / `NumPy`、バッチ処理）。
 - `film_stamp.py` — コア光学レンダリングエンジン（Pillow / NumPy ベース、視覚サイズ正規化、タイト矩形クロップ、ComfyUI非依存）。
 - `film_config.py` — 設定データクラス、カラープリセット、スタイル一括プリセット、日付フォーマットパーサー。

@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/code-MIT-blue?style=flat-square)](LICENSE)
 [![Fonts: OFL 1.1](https://img.shields.io/badge/fonts-SIL_OFL_1.1-8a2be2?style=flat-square)](fonts/LICENSE-OFL.txt)
 
-**[🇺🇸 English](README.md)** | **[🇯🇵 日本語 (Japanese)](README_ja.md)**
+**[🇺🇸 English](README.md)** | **[🇯🇵 日本語 (Japanese)](README_ja.md)** | **[🇨🇳 简体中文 (Chinese)](README_zh.md)**
 
 [なぜ「光学感光」なのか？](#-なぜ光学感光optical-burn-inなのか) •
 [ハイライト埋もれ再現](#%EF%B8%8F-乳剤感光余力とハイライト埋もれ再現) •
