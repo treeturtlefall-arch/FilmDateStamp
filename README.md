@@ -1,126 +1,247 @@
-# FilmDateStamp (ComfyUI Custom Node)
+<div align="center">
 
-[English](README.md) | [日本語](README_ja.md)
+# 🎞️ FilmDateStamp
 
-![Hero Banner](assets/hero_banner.png)
+### Authentic Optical Burn-in & Emulsion Halation Engine for ComfyUI
 
-A custom node package for ComfyUI dedicated to faithfully simulating the optical and physical characteristics of camera quartz date stamps burned into photographic film emulsion.
+[![Version](https://img.shields.io/badge/version-v1.0.0-ff8c00?style=flat-square)](https://github.com/treeturtlefall-arch/FilmDateStamp/releases)
+[![ComfyUI](https://img.shields.io/badge/ComfyUI-Custom_Node-2ea44f?style=flat-square)](https://github.com/comfyanonymous/ComfyUI)
+[![Python](https://img.shields.io/badge/python-3.9%2B-3776ab?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Optical Engine](https://img.shields.io/badge/optics-H%26D_Spectrophotometric-e04000?style=flat-square)](#7-stage-optical-rendering-pipeline)
+[![License: MIT](https://img.shields.io/badge/code-MIT-blue?style=flat-square)](LICENSE)
+[![Fonts: OFL 1.1](https://img.shields.io/badge/fonts-SIL_OFL_1.1-8a2be2?style=flat-square)](fonts/LICENSE-OFL.txt)
 
-Rather than applying a simple flat text overlay or standard blend mode, FilmDateStamp physically simulates **light-emitting diodes (LEDs) exposing the photosensitive silver halide / dye emulsion layers**.
+**[🇺🇸 English](README.md)** | **[🇯🇵 日本語 (Japanese)](README_ja.md)**
+
+[Why Optical Burn-in?](#-why-optical-burn-in) •
+[Highlight Bleed-Through](#-emulsion-headroom--highlight-bleed-through) •
+[8 Curated Fonts](#-8-curated-fonts--visual-size-normalization) •
+[12 Style Presets](#-12-era--culture-defining-style-presets) •
+[Installation](#-installation) •
+[Parameters](#%EF%B8%8F-parameter-reference)
+
+<br>
+
+![FilmDateStamp Hero Banner](assets/hero_banner.png)
+
+*Not a text sticker. A physical simulation of miniature camera LEDs exposing photosensitive silver halide & dye emulsion layers.*
+
+</div>
 
 ---
 
-## 🌟 Key Features
+## 🔬 Why Optical Burn-in?
 
-### 1. Optical Burn-in Physical Model vs Conventional Overlay
-Simulates physical photon irradiation onto photographic film emulsion: linear-space additive exposure combined with an **unexposed emulsion headroom model** and soft shoulder roll-off.
-- **Saturated Hotspot Ridge**: Segments feature a physically bleached white filament core that transitions outward into spectral orange-red halation.
-- **Multi-Scale PSF Scattering**: Narrow-angle forward Mie scattering combines with wide-angle base-backplate halation.
-- **Organic Irregularities (3 Tiers)**: Macro LED output variations (±10%), meso backplate pressure warping, and micro dye-cloud grain dissolution.
+On a real 35mm or disposable film camera, the quartz date stamp is **not printed on top of the photograph**. Instead, a tiny LED or incandescent micro-bulb behind the film gate fires photons directly into the photosensitive emulsion layers from behind or through a micro-lens array.
+
+Conventional digital overlays (`Alpha Blend` or `Screen` + `Gaussian Blur`) look artificial because they lack spectral saturation and emulsion interaction. **FilmDateStamp** replaces flat text blending with a 7-stage physical optical model:
+
+| Optical Property | Standard Text Overlay | Simple Gaussian Glow | **FilmDateStamp (Optical Burn-in)** |
+| :--- | :---: | :---: | :---: |
+| **Segment Center (Hotspot Ridge)** | ❌ Flat solid color | ❌ Washes out into uniform fog | ✅ **Bleached white-hot filament core** via Euclidean distance ridge |
+| **Color Transition** | ❌ Single RGB value | ❌ Monochromatic opacity fade | ✅ **H&D Spectrophotometric Bleaching** (`Red` → `Orange` → `Amber` → `Cream White`) |
+| **Light Scattering (PSF)** | ❌ Razor-sharp digital edges | ⚠️ Single-radius blur | ✅ **Multi-Scale PSF** (Narrow Mie forward scatter + wide backplate halation) |
+| **Bright Background Behavior** | ❌ Sits on top like a sticker | ⚠️ Artificial bright clip | ✅ **Linear Emulsion Headroom** (Naturally melts into blown-out highlights) |
+| **Organic Imperfections** | ❌ 100% uniform computer text | ❌ 100% uniform blur | ✅ **3-Tier Irregularity** (LED jitter, pressure-plate warp, dye-cloud grain) |
 
 ![Burn-in vs Overlay Comparison](assets/comparison_burnin_vs_overlay.png)
 
-### 2. Realistic Highlight Bleed-Through (Emulsion Headroom)
-Over bright or pure white backgrounds where the film emulsion is already saturated, the date stamp naturally blows out and melts into the background highlights—faithfully reproducing the real optical phenomenon.
+---
+
+## ☀️ Emulsion Headroom & Highlight Bleed-Through
+
+When photographic film is already heavily exposed by a bright sky or white wall, the silver halide crystals and dye couplers in that region are **already saturated**—leaving zero remaining photosensitive capacity (*Emulsion Headroom*).
+
+FilmDateStamp computes the unexposed capacity of the base image in linear light space ($sRGB \to \text{Linear}$) and applies a physical film shoulder roll-off:
+
+$$I_{\text{exposed}} = \frac{I_{\text{base}} + L_{\text{stamp}}}{1.0 + \max(0,\, I_{\text{base}} + L_{\text{stamp}} - 1.0) \times k_{\text{shoulder}}}$$
+
+- **In Dark Shadows ($I_{\text{base}} \approx 0$)**: Full emulsion headroom is available. The LED stamp burns vividly with rich red-orange halation.
+- **In Bright Highlights ($I_{\text{base}} \approx 1$)**: Emulsion headroom is exhausted. The stamp photons blow out and dissolve into pure white—faithfully reproducing how real quartz date stamps vanish into bright skies.
 
 ![Highlight Bleed-Through Demo](assets/highlight_bleedthrough_demo.png)
 
-### 3. Authentic Hardware Geometry & Expressive Typography (8 Curated Fonts)
-- `FDSMechanical70s`: 1970s mechanical engraved dial numerals (DIN 1451 / JIS industrial engraving; Canon Canodate E / Datematic).
-- `FDS7Strict-Compact`: 1980s Suwa Seikosha quartz date module geometry (-7.0° italic slant; Autoboy, L35AD, etc.).
-- `FDS7Strict-SLR`: 1980s SLR camera data back geometry (0.0° upright; Nikon MF-12/14/16, etc.).
-- `FDSDotStrict`: 1990s disposable camera 5×7 tall capsule dot matrix (Utsurundesu / QuickSnap).
-- `ShareTechMono`: 90s–2000s early compact digital camera / Casio G-SHOCK monospace LCD.
-- `Michroma`: 80s–90s sci-fi / space probe telemetry HUD (wide geometric).
-- `MochiyPopOne`: Heisei retro round fancy / Purikura photo booth neon pop.
-- `EagleLake`: Alchemical ledger / vintage manuscript ink cursive script.
+---
 
-### 4. Visual Size Normalization
-Automatically absorbs internal font glyph bounding-box and EM-square differences. Switching fonts preserves identical visual size and precise corner margins at the same `font_scale`.
+## 🔤 8 Curated Fonts & Visual Size Normalization
 
-### 5. Intuitive Date Inputs & Timestamp Toggle (`show_time`)
-- Custom string input (e.g. `'98 12 24`).
-- Dynamic macros: `"auto"` or `"today"` for current runtime date; `"random"` for vintage dates (1985–2005) with reproducible seed control.
-- Single-click `show_time` boolean toggle to append timestamps (`HH:MM`).
+Includes **4 strictly hardware-accurate in-house TrueType fonts** engineered from scratch to match iconic 1970s–1990s camera modules, **1 clean digital LCD font**, and **3 expressive / speculative fonts**—all licensed under **SIL Open Font License 1.1**.
 
-### 6. Era- & Culture-Defining Style Presets
-Jump straight to iconic photography aesthetics across regions, cultures, and decades:
+![Curated Typography Macro Specimens](assets/font_comparison_report_en.png)
+
+| Font Option (`font_type`) | Category | Geometric Specification | Era & Iconic Hardware Inspiration |
+| :--- | :--- | :--- | :--- |
+| **`FDS_Mechanical_70s (70s Mechanical)`** | ★ In-House Strict | DIN 1451 / JIS industrial engraving, capsule `0`, hooked `1`, slanted dash `'` | **1970s Mechanical Dials**: Canon Canodate E (1970), Canon Datematic (1974), Data Back A |
+| **`FDS7_Strict_Compact (80s -7°)`** | ★ In-House Strict | Suwa Seikosha 7-segment geometry ($W/H=0.50$, **$-7.0^\circ$ forward slant**), floating dot `'` | **1980s–90s Compact Golden Era**: Canon Autoboy, Nikon L35AD (Pikaichi), Olympus AF-10 |
+| **`FDS7_Strict_SLR (80s 0°)`** | ★ In-House Strict | Upright 7-segment geometry ($W/H=0.50$, **$0.0^\circ$ upright**), floating dot `'` | **1980s SLR Data Backs**: Nikon MF-12 / MF-14 / MF-16, Olympus Recordata, Minolta Data Back G |
+| **`FDS_Dot_Strict (90s Dot Matrix)`** | ★ In-House Strict | $5\times7$ grid tall capsule dot matrix ($65\times80$), hollow `0`, 2-dot diagonal `'` | **1990s Disposable & Luxury Compacts**: Fujifilm QuickSnap (*Utsurundesu*), Cardia/Tiara, Ricoh GR1 |
+| **`ShareTechMono (LCD Digital)`** | Digital LCD | Clean monospace digital LCD proportions | **Late 90s–2000s Early Digicams**: Early CCD compact cameras, Casio G-SHOCK |
+| **`Michroma (Cyber Telemetry)`** | Expressive / Sci-Fi | Ultra-wide geometric euro-stile proportions | **80s–90s Sci-Fi HUD**: Space probe telemetry, *Blade Runner* / *Evangelion* optical readouts |
+| **`MochiyPopOne (Y2K Pop)`** | Expressive / Kawaii | Thick rounded mochi-style pop lettering | **Heisei Retro Fancy**: Limited-edition toy cameras, Japanese *Purikura* neon photo booths |
+| **`EagleLake (Arcane Script)`** | Expressive / Occult | Calligraphic manuscript ink strokes with organic taper | **Arcane & Dark Fantasy**: Alchemical field ledgers, grimoires, SCP classified anomalies |
+
+> [!TIP]
+> **Automatic Visual Size Normalization**: Every font has wildly different internal EM-square metrics and ascender/descender padding. FilmDateStamp automatically normalizes glyph visual height ($4.0\%$ of image short edge at `font_scale = 1.0`) and crops to the **exact lit-pixel bounding box**. You can switch freely between any of the 8 fonts without ever needing to re-adjust `font_scale` or `margin`.
+
+---
+
+## 🎨 12 Era- & Culture-Defining Style Presets
+
+Select a preset from the top **`style_preset`** dropdown to configure typography, spectral palette, exposure intensity, core glow, halation, and regional date formatting in a single click.
 
 ![Presets Gallery](assets/presets_showcase_en.png)
 
-- `Japanese Tokyo 90s`: Everyday 90s Tokyo street snapshot ('YY MM DD / 80s 7-seg -7° / Amber Classic).
-- `Japanese Snap (Disposable)`: Disposable camera look ('YY MM DD HH:MM / 5×7 Capsule Dot / Fuji Orange).
-- `American West Coast`: 90s West Coast road trip (MM DD 'YY / 80s 7-seg -7° / Golden Yellow).
-- `American 80s (Red Quartz)`: 80s motel / SLR red LED (MM DD 'YY / 80s 7-seg upright / Quartz Red).
-- `European Classic (Paris/Berlin)`: European cobblestone aesthetic (DD.MM.YY / 80s 7-seg upright / Subtle Amber).
-- `Y2K Digicam (Early 2000s)`: Early 2000s digital compact LCD ('YY MM DD HH:MM / Monospace LCD / Golden Yellow).
-- `Compact Fine Dot (Minimal)`: 90s high-end compact camera fine dots ('YY MM DD HH:MM / Fuji Orange).
-- `Monochrome 70s (Canodate E)`: 70s B&W silver print (YY MM DD / Mechanical / Paper White).
-- `Vintage 70s Color (Datematic)`: 70s warm color print ('YY MM DD / Mechanical / Warm Ivory).
-- `Cyber Telemetry (80s Sci-Fi)`: Space telemetry HUD ('YY MM DD HH:MM:SS / Michroma / Cyber Green).
-- `Y2K Pop (Heisei Fancy)`: Heisei fancy neon pop ('YY MM DD HH:MM / MochiyPopOne / Neo Pink).
-- `Arcane Occult (Crimson Script)`: Ancient alchemical grimoire ('YY MM DD / EagleLake / Crimson Red).
+### 📸 Authentic Vintage Hardware Presets (9)
 
-### 7. Versatile Outputs (MASK & STRING Support)
-- **`IMAGE`**: The composite image tensor with physically burned-in date stamp.
-- **`MASK`**: High-precision anti-aliased emission mask `[B, H, W]`. Features 1.0 white core and smooth halation falloff; ideal for downstream selective grain injection or inpainting removal.
-- **`STRING` (`date_text`)**: The resolved date and time text (e.g. `'98 12 24 18:30'`). Easily feeds into SaveImage filename prefixes or captioning nodes.
+| Style Preset | Font Geometry | Spectral Palette | Format & Time | Aesthetic & Cultural Context |
+| :--- | :--- | :--- | :--- | :--- |
+| **`Japanese Tokyo 90s`** | `FDS7_Strict_Compact` (-7°) | `Amber Classic` | `'YY MM DD` | Everyday 90s Japanese street snapshot; classic golden-amber glow |
+| **`Japanese Snap (Disposable)`** | `FDS_Dot_Strict` (5×7 Dot) | `Fuji Orange` | `'YY MM DD HH:MM` | Classic disposable camera (*Utsurundesu*) with vivid orange capsule dots & time |
+| **`American West Coast`** | `FDS7_Strict_Compact` (-7°) | `Golden Yellow` | `MM DD 'YY` | Sun-drenched 90s US West Coast road trip with US month-first ordering |
+| **`American 80s (Red Quartz)`** | `FDS7_Strict_SLR` (0°) | `Quartz Red` | `MM DD 'YY` | 1980s motel & SLR data back aesthetic with deep red LED halation |
+| **`European Classic (Paris/Berlin)`** | `FDS7_Strict_SLR` (0°) | `Amber Classic` | `DD.MM.YY` | Understated European art-photo look with period separators (`DD.MM.YY`) |
+| **`Y2K Digicam (Early 2000s)`** | `ShareTechMono` (LCD) | `Golden Yellow` | `'YY MM DD HH:MM` | Early 2000s CCD digital compact camera LCD timestamp |
+| **`Compact Fine Dot (Minimal)`** | `FDS_Dot_Strict` (5×7 Dot) | `Fuji Orange` | `'YY MM DD HH:MM` | Refined, crisp micro-dot imprint of 90s titanium luxury compacts |
+| **`Monochrome 70s (Canodate E)`** | `FDS_Mechanical_70s` | `Paper White` | `YY MM DD` | 1970s B&W silver gelatin print with clean white optical mask burn |
+| **`Vintage 70s Color (Datematic)`** | `FDS_Mechanical_70s` | `Bulb Warm Ivory` | `'YY MM DD` | 1970s warm incandescent micro-bulb exposure on vintage color film |
+
+### ✨ Expressive / Speculative Presets (3)
+
+| Style Preset | Font Geometry | Spectral Palette | Format & Time | Aesthetic & Cultural Context |
+| :--- | :--- | :--- | :--- | :--- |
+| **`Cyber Telemetry (80s Sci-Fi)`** | `Michroma` | `Cyber Green` | `'YY MM DD HH:MM:SS` | High-precision green laser telemetry HUD (automatically includes `:SS` seconds) |
+| **`Y2K Pop (Heisei Fancy)`** | `MochiyPopOne` | `Neo Pink` | `'YY MM DD HH:MM` | Sweet magenta Mie scattering inspired by Heisei retro Purikura booths |
+| **`Arcane Occult (Crimson Script)`** | `EagleLake` | `Crimson Red` | `'YY MM DD` | Cursed crimson ink halation for dark fantasy, occult, or SCP photography |
+
+---
+
+## 🧬 7-Stage Optical Rendering Pipeline
+
+<details>
+<summary><b>Click to expand technical details of the physical rendering engine</b></summary>
+
+<br>
+
+```text
+                       [ Exposure Energy E Distribution ]
+                     Saturated Filament Core (Hotspot Ridge)
+                                 ┌───────────┐
+                                 │           │
+                     Narrow-Angle Forward Mie Scattering
+                         ┌───────┴───────────┴───────┐
+                         │                           │
+               Wide-Angle Base & Pressure-Plate Reflection Halation
+               ┌─────────┴───────────────────────────┴─────────┐
+            ───┴───────────────────────────────────────────────┴─── (Film Emulsion Layer)
+```
+
+1. **Stage 1 — Euclidean Distance Ridge & Optical Blooming**: Extracts the medial axis of each stroke to model the intense hotspot directly above the LED die, rounding sharp digital corners via slit diffraction.
+2. **Stage 2 — Macro Irregularity (Element Power Jitter)**: Simulates ±10% manufacturing tolerances between individual 7-segment bars/dots and subtle illumination falloff across the projection lens.
+3. **Stage 3 — Multi-Scale Anisotropic PSF Scattering**: Convolves energy across narrow-angle forward Mie scattering (amber body), wide-angle film-base reflection (red halation), and ultra-wide veiling glare, with slight elliptical anisotropy.
+4. **Stage 4 — Meso Irregularity (Pressure Plate Warping)**: Modulates halation fringes with low-frequency Perlin-like pressure-plate contact clouds and domain-warped displacement fields.
+5. **Stage 5 — Micro Irregularity (Silver Halide Grain & Dye Clumping)**: Injects photosensitive threshold noise that dissolves only the faint outer halation skirt into organic dye clouds while keeping the saturated core smooth.
+6. **Stage 6 — H&D Spectrophotometric Bleaching**: Evaluates $I = 1.0 - \exp(-E^\gamma)$ per spectral channel. Low energy excites only the long-wavelength red layer; medium energy recruits green (forming orange/amber); high core energy saturates blue, bleaching organically into warm cream-white.
+7. **Stage 7 — Linear Emulsion Headroom Composite**: Converts the base image to linear RGB, scales stamp energy by remaining emulsion headroom ($1.0 - L_{\text{base}}^{1.35} \times 0.72$), applies soft-shoulder roll-off, and converts back to sRGB.
+
+</details>
 
 ---
 
 ## 📦 Installation
 
-### Option 1: ComfyUI-Manager (Recommended)
-Search for `Film Date Stamp` or `FilmDateStamp` in ComfyUI-Manager and click **Install**.
+### Method 1: ComfyUI-Manager (Recommended)
+Open **ComfyUI-Manager**, search for **`Film Date Stamp`** (or `FilmDateStamp`), and click **Install**.
 
-### Option 2: Git Clone
-Navigate to your ComfyUI `custom_nodes` directory and clone the repository:
+### Method 2: Comfy-CLI
+```bash
+comfy node install comfyui-film-date-stamp
+```
+
+### Method 3: Manual Git Clone
+Clone this repository into your `ComfyUI/custom_nodes` directory:
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/treeturtlefall-arch/FilmDateStamp.git
 ```
+*(No extra pip packages required—uses standard `torch`, `numpy`, and `Pillow` bundled with ComfyUI.)*
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start & Workflow Integration
 
-1. In ComfyUI, locate the node under: `image` > `film` > **`Film Date Stamp (Optical Burn-in)`**.
-2. Select your desired vibe from the top **`style_preset`** dropdown (e.g. `Japanese Tokyo 90s` or `American West Coast`). Font, color spectrum, exposure, and date formatting will be configured instantly.
-3. Adjusting any parameter manually automatically switches the preset to `Custom` for fine-tuning.
-4. Drag and drop the official sample workflow (`workflows/film_date_stamp_workflow.json`) into ComfyUI to get started right away.
+1. **Add the Node**: Right-click on the canvas → `image` → `film` → **`Film Date Stamp (Optical Burn-in)`**.
+2. **Pick a Vibe**: Choose a preset from **`style_preset`** at the top of the node.
+3. **Fine-Tune Freely**: Tweaking any parameter (`font_type`, `preset_color`, `halation`, etc.) automatically switches `style_preset` to `Custom` via the bundled frontend extension.
+4. **Sample Workflow**: Drag & drop [`workflows/film_date_stamp_workflow.json`](workflows/film_date_stamp_workflow.json) directly into ComfyUI.
+
+### 💡 Smart Date Input (`date_string`)
+No complicated mode switches—just type what you want into `date_string`:
+- **Custom Text**: Type any date directly, e.g., `'98 12 24` or `'95 08 15 14:30`.
+- **Current System Date**: Type `"auto"`, `"today"`, or `"now"` to format the current runtime date/time using `date_format` and `show_time`.
+- **Reproducible Vintage Random**: Type `"random"` to generate a random vintage date (1985–2005) deterministically controlled by `seed`.
+
+### 🔌 Leveraging the 3 Output Slots
+- **`image` (`IMAGE`)**: The final composite image with physically burned-in date stamp.
+- **`mask` (`MASK`)**: High-precision `[B, H, W]` emission mask (`1.0` at the core, smooth falloff across the halation skirt). Ideal for feeding into downstream **Film Grain** nodes (to add extra grain specifically to the exposed dye cloud) or **Inpaint** nodes.
+- **`date_text` (`STRING`)**: The exact resolved string rendered onto the frame (e.g., `'98 12 24 18:30`). Connect this to `SaveImage` filename prefixes or image captioning pipelines.
 
 ---
 
 ## ⚙️ Parameter Reference
 
-| Parameter | Type / Options | Default | Description |
-|---|---|---|---|
-| `style_preset` | `Custom`, `Japanese Tokyo 90s`, `American West Coast`, etc. | `Custom` | Master style preset selector (top widget) |
-| `font_type` | 8 curated fonts (4 strictly in-house + 1 LCD mono + 3 expressive) | `FDS7_Strict_Compact (80s -7°)` | Typography geometry |
-| `preset_color` | `Amber Classic`, `Quartz Red`, `Fuji Orange`, `Golden Yellow`, `Bulb Warm Ivory`, `Paper White`, `Cyber Green`, `Neo Pink`, `Crimson Red` | `Amber Classic` | Physical emission spectral preset |
-| `exposure_intensity`| FLOAT (0.0 – 2.0) | `1.0` | Overall exposure light energy |
-| `core_glow` | FLOAT (0.0 – 2.0) | `1.0` | Intensity of the saturated white filament core |
-| `halation` | FLOAT (0.0 – 3.0) | `1.0` | Emulsion red halo scattering radius and intensity |
-| `date_string` | STRING | `'98 12 24` | Custom date string, or `"auto"`, `"today"`, `"random"` |
-| `date_format` | `'YY MM DD`, `YY MM DD`, `MM DD 'YY`, `DD MM 'YY`, `DD.MM.YY`, `YY-MM-DD`, `YY.MM.DD`, `YYYY MM DD`, `YYYY-MM-DD` | `'YY MM DD` | Formatting convention for dynamic dates |
-| `show_time` | BOOLEAN | `False` | Toggle timestamp (`HH:MM`) display |
-| `position` | `bottom_right`, `bottom_left`, `top_right`, `top_left` | `bottom_right` | Placement corner |
-| `font_scale` | FLOAT (0.5 – 2.5) | `1.0` | Font scale relative to image short edge |
-| `margin` | FLOAT (0.0 – 3.0) | `1.0` | Margin distance from image boundary |
-| `seed` | INT | `0` | Seed for random date generation and organic irregularity |
-| `irregularity` | FLOAT (0.0 – 2.0) | `1.0` | Strength of the 3-tier organic irregularity simulation |
+| Parameter | Type | Default | Range / Options | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **`style_preset`** | `COMBO` | `Custom` | `Custom` + 12 Presets | Master style selector. Auto-populates font, color, exposure, and date format. |
+| **`font_type`** | `COMBO` | `FDS7_Strict_Compact (80s -7°)` | 8 Curated Fonts | Light-emitting element typography (with automatic visual size normalization). |
+| **`preset_color`** | `COMBO` | `Amber Classic` | 9 Spectral Palettes | Physical emission spectrum (6 authentic hardware + 3 expressive palettes). |
+| **`exposure_intensity`** | `FLOAT` | `1.00` | `0.00` – `2.00` | Master photon exposure energy delivered to the film emulsion. |
+| **`core_glow`** | `FLOAT` | `1.00` | `0.00` – `2.00` | Intensity of the bleached white-hot filament core ridge. |
+| **`halation`** | `FLOAT` | `1.00` | `0.00` – `3.00` | Spread radius and intensity of multi-scale red emulsion halation. |
+| **`date_string`** | `STRING` | `'98 12 24` | Literal / `"auto"` / `"random"` | Literal text to burn in, or dynamic keyword (`"auto"`, `"today"`, `"random"`). |
+| **`date_format`** | `COMBO` | `'YY MM DD` | 9 Regional Formats | Date ordering and delimiter syntax used for dynamic/preset dates. |
+| **`show_time`** | `BOOLEAN` | `False` | `True` / `False` | Appends `HH:MM` timestamp (or `HH:MM:SS` for Cyber Telemetry). |
+| **`position`** | `COMBO` | `bottom_right` | `bottom_right`, `bottom_left`, `top_right`, `top_left` | Corner placement with tight lit-pixel bounding box alignment. |
+| **`font_scale`** | `FLOAT` | `1.00` | `0.50` – `2.50` | Stamp size multiplier relative to the image short edge ($4.0\%$ base). |
+| **`margin`** | `FLOAT` | `1.00` | `0.00` – `3.00` | Isotropic distance from the frame edge (~5:4 horizontal/vertical ratio). |
+| **`irregularity`** *(opt)* | `FLOAT` | `1.00` | `0.00` – `2.00` | Strength of the 3-tier organic irregularity (`0.0` = clean, `1.0` = authentic). |
+| **`seed`** *(opt)* | `INT` | `0` | `0` – `2^64-1` | Deterministic seed for `"random"` date generation and organic noise patterns. |
 
-### 📤 Output Slots
+<details>
+<summary><b>🌈 Spectral Color Palettes & Regional Date Formats (Click to expand)</b></summary>
 
-| Slot Name | Type | Description |
-|---|---|---|
-| `image` | `IMAGE` | Burned-in output tensor `[B, H, W, C]` |
-| `mask` | `MASK` | Antialiased high-precision stamp mask `[B, H, W]` (1.0 core, falloff halation, 0.0 background) |
-| `date_text` | `STRING` | The resolved text string rendered on the image (e.g. `'98 12 24 18:30'`) |
+### Spectral Color Palettes (`preset_color`)
+
+| Palette Name | Core RGB | Body RGB | Halation RGB | Character |
+| :--- | :---: | :---: | :---: | :--- |
+| **`Amber Classic`** | `(255, 255, 210)` | `(255, 130, 20)` | `(240, 45, 0)` | Signature 90s compact camera golden amber |
+| **`Quartz Red`** | `(255, 230, 220)` | `(255, 40, 20)` | `(200, 10, 0)` | Deep 1980s red LED quartz data back |
+| **`Fuji Orange`** | `(255, 250, 190)` | `(255, 115, 20)` | `(250, 60, 10)` | Vivid warm orange of disposable cameras (*QuickSnap*) |
+| **`Golden Yellow`** | `(255, 255, 240)` | `(255, 185, 30)` | `(240, 110, 0)` | Bright yellow-amber common in late-90s / Y2K compacts |
+| **`Bulb Warm Ivory`** | `(255, 250, 232)` | `(255, 242, 204)` | `(255, 214, 138)` | 1970s incandescent micro-bulb warm ivory (*Datematic*) |
+| **`Paper White (Monochrome)`** | `(248, 246, 240)` | `(245, 242, 234)` | `(235, 232, 224)` | 1970s B&W silver print unexposed paper white (*Canodate E*) |
+| **`Cyber Green`** *(Expressive)* | `(230, 255, 230)` | `(40, 255, 80)` | `(0, 180, 40)` | Sci-fi space telemetry / Wong Kar-wai neon green |
+| **`Neo Pink`** *(Expressive)* | `(255, 235, 248)` | `(255, 70, 170)` | `(230, 25, 115)` | Heisei retro Purikura & toy camera neon magenta |
+| **`Crimson Red`** *(Expressive)* | `(255, 235, 225)` | `(235, 25, 35)` | `(185, 5, 15)` | Dark occult / alchemical crimson blood halation |
+
+### Regional Date Formats (`date_format`)
+
+| Format Syntax | Output (`show_time=False`) | Output (`show_time=True`) | Regional Convention |
+| :--- | :--- | :--- | :--- |
+| **`'YY MM DD`** | `'98 12 24` | `'98 12 24 18:30` | Japan / East Asia standard (most iconic) |
+| **`YY MM DD`** | `98 12 24` | `98 12 24 18:30` | No-apostrophe 1970s mechanical standard |
+| **`MM DD 'YY`** | `12 24 '98` | `12 24 '98 18:30` | North America (US) standard |
+| **`DD MM 'YY`** | `24 12 '98` | `24 12 '98 18:30` | Europe / UK / Commonwealth standard |
+| **`DD.MM.YY`** | `24.12.98` | `24.12.98 18:30` | German / Continental European period-separated |
+| **`YY-MM-DD`** | `98-12-24` | `98-12-24 18:30` | Hyphen-separated compact |
+| **`YY.MM.DD`** | `98.12.24` | `98.12.24 18:30` | Dot-separated compact |
+| **`YYYY MM DD`** | `1998 12 24` | `1998 12 24 18:30` | 4-digit year (Y2K-compliant modules) |
+| **`YYYY-MM-DD`** | `1998-12-24` | `1998-12-24 18:30` | ISO 8601 4-digit hyphenated |
+
+</details>
 
 ---
 
 ## 📄 License
 
-- Code: MIT License
-- Bundled Fonts: SIL Open Font License 1.1 (`fonts/LICENSE-OFL.txt`)
+- **Source Code**: [MIT License](LICENSE)
+- **Bundled Fonts (`fonts/*.ttf`)**: [SIL Open Font License 1.1](fonts/LICENSE-OFL.txt) (including the 4 in-house `FDS*` strict hardware fonts and 4 bundled OFL fonts).
